@@ -1,0 +1,52 @@
+html {
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+}
+
+body {
+    font-family: 'Microsoft YaHei', 'PingFang SC', 'Source Han Sans', sans-serif;
+    margin: 0;
+    padding: 0;
+    font-size: 14px;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    overflow-x: hidden;
+}
+
+canvas {
+    display: block;
+}
+
+/* 浅色主题（默认） */
+:root {
+    --bg-color: #fffdf3;
+    --text-color: #0d534b;
+    --primary-color: rgba(255,253,243,0.5);
+    --secondary-color: #3399ff;
+    --border-color: #217c70;
+    --el-menu-bg-color: #fffdf3 !important;
+    --el-menu-text-color: #0d534b !important;
+    --el-menu-hover-bg-color: #d0e3e0 !important;
+    --el-menu-hover-text-color: #0d534b !important;
+}
+
+/* 深色主题 */
+.dark-theme {
+    --bg-color: #0d534b;
+    --text-color: #e0e0e0;
+    --primary-color: rgba(0,0,0,0.2);
+    --secondary-color: #1ebea5;
+    --border-color: #217c70;
+    --el-menu-bg-color: #0d534b;
+    --el-menu-text-color: #e0e0e0;
+    --el-menu-hover-bg-color: #052320 !important;
+    --el-menu-hover-text-color: #ffffff;
+}
+
+.card {
+    background-color: white;
+    padding: 10px;
+    border-radius: 5px;
+    box-shadow: 0 0 8px rgba(0,0,0,.12);
+}

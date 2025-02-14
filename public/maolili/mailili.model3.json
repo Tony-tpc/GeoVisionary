@@ -1,0 +1,29 @@
+{
+	"Version": 3,
+	"FileReferences": {
+		"Moc": "mailili.moc3",
+		"Textures": [
+			"mailili.8192/texture_00.png"
+		],
+		"Physics": "mailili.physics3.json",
+		"DisplayInfo": "mailili.cdi3.json"
+	},
+	"Groups": [
+		{
+			"Target": "Parameter",
+			"Name": "EyeBlink",
+			"Ids": [
+				"ParamBreath",
+				"ParamEyeLOpen",
+				"ParamEyeROpen"
+			]
+		},
+		{
+			"Target": "Parameter",
+			"Name": "LipSync",
+			"Ids": [
+				"ParamBreath"
+			]
+		}
+	]
+}
