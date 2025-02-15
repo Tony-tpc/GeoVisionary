@@ -15,13 +15,13 @@ export default defineConfig({
     vue(),
     vueDevTools(),
     ElementPlus({
-      useSource:true,
+      useSource: true,
     }),
     AutoImport({
-      resolvers:[ElementPlusResolver({ importStyle:'sass' })],
+      resolvers: [ElementPlusResolver({ importStyle: 'sass' })],
     }),
     Components({
-      resolvers:[ElementPlusResolver({ importStyle:'sass' })],
+      resolvers: [ElementPlusResolver({ importStyle: 'sass' })],
     }),
     compression({
       ext: '.gz', // 生成 .gz 文件
@@ -34,12 +34,23 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url))
     },
   },
-  css:{
+  css: {
     preprocessorOptions: {
       scss: {
-        additionalData:`
+        additionalData: `
           @use "@/assets/index.scss" as *;
         `,
+      }
+    }
+  },
+
+  // 需修改代理
+  server: {
+    proxy: {
+      '/qqmap': {
+        target: 'https://apis.map.qq.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/qqmap/, '')
       }
     }
   },

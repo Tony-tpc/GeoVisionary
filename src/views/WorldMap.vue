@@ -14,7 +14,8 @@
   <!--  展示页 -->
   <section>
     <div class="container section2">
-      <div style="position:absolute;top: 20%;left: 20%;font-size: 32px;font-weight: bold;color: #0d0f1a;width: 500px;">此处呈现地图</div>
+      <ShowWorld />
+      <!-- <div style="position:absolute;top: 20%;left: 20%;font-size: 32px;font-weight: bold;color: #0d0f1a;width: 500px;">此处呈现地图</div> -->
     </div>
   </section>
 </template>
@@ -23,6 +24,7 @@
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { onMounted } from "vue";
+import ShowWorld from "@/objects/ShowWorld.vue";
 gsap.registerPlugin(ScrollTrigger)
 
 onMounted(() => {
@@ -94,5 +96,6 @@ onMounted(() => {
   top: 100vh;
   left: 0;
   height: 100vh;
+  
 }
 </style>

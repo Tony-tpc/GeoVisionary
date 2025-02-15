@@ -14,7 +14,8 @@
   <!--  展示页 -->
   <section>
     <div class="container section2">
-      <div style="position:absolute;top: 20%;left: 20%;font-size: 32px;font-weight: bold;color: #0d0f1a;width: 500px;">此处呈现Cesium地形模型</div>
+      <ShowGITF/>
+      <!-- <div style="position:absolute;top: 20%;left: 20%;font-size: 32px;font-weight: bold;color: #0d0f1a;width: 500px;">此处呈现Cesium地形模型</div> -->
     </div>
   </section>
 </template>
@@ -23,6 +24,8 @@
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { onMounted } from "vue";
+import ShowGITF from "@/objects/ShowGITF.vue";
+
 gsap.registerPlugin(ScrollTrigger)
 
 onMounted(() => {
