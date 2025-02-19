@@ -9,11 +9,14 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, onBeforeMount } from "vue";
+import { ref, onMounted, onBeforeUnmount, onBeforeMount, computed, toRefs } from "vue";
 import TimeLine from "@/components/TimeLine.vue";
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+import { useRoute } from "vue-router";
+
 
 // 时间线相关变量
 const nowValue = ref("0:00");
@@ -24,6 +27,10 @@ const sunColor = new THREE.Color();
 const currentTime = ref({ hour: 12, minute: 0 }); // 默认中午12点
 // Three.js 相关变量
 let scene, camera, renderer, controls, model;
+
+
+const route = useRoute();
+let { query } = route
 
 // 初始化时间线数据
 onBeforeMount(() => {
@@ -109,7 +116,7 @@ function setupAdvancedLighting() {
 
 function loadModel() {
     const loader = new GLTFLoader();
-    loader.load('/models/hero_mountain.glb',
+    loader.load(`/models/${query.id}.glb`,
         (gltf) => {
             model = gltf.scene;
             model.scale.set(5, 5, 5);
@@ -124,7 +131,7 @@ function loadModel() {
             const fov = camera.fov * (Math.PI / 180);
             let cameraZ = Math.abs(maxDim / (2 * Math.tan(fov / 2)));
 
-            camera.position.set(center.x, center.y, cameraZ * 0.8);
+            camera.position.set(center.x, center.y+100, cameraZ * 0.8);
             controls.target.copy(center);
             controls.update();
             gltf.scene.traverse(child => {
@@ -188,13 +195,16 @@ function animate() {
 // 时间线变化事件处理
 const handleNowValueChange = (hourArr) => {
     if (model) {
+        let rettime = ref([0, 0])// hour minute
+        rettime.value[0] = Math.floor(hourArr * 120 / 5);
+        rettime.value[1] = Math.floor(hourArr * 120) % 5 * 24;
         // const intensity = hourArr.value[0] / 24;
         // model.traverse((child) => {
         //     if (child.isMesh) {
         //         child.material.emissiveIntensity = intensity;
         //     }
         // });
-        currentTime.value = hourArr.value;
+        currentTime.value = rettime.value;
         console.log(currentTime.value);
 
         updateLighting();
@@ -207,7 +217,6 @@ function updateLighting() {
 
     // 计算太阳高度角（0-24小时映射到0-2π弧度）
     const sunAngle = (time / 24) * Math.PI * 2 - Math.PI / 2;
-    console.log(time);
 
 
     // 计算太阳位置

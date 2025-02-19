@@ -14,7 +14,7 @@
   <!--  展示页 -->
   <section>
     <div class="container section2">
-      <div style="position:absolute;top: 20%;left: 20%;font-size: 32px;font-weight: bold;color: #0d0f1a;width: 500px;">此处呈现月相变化模型</div>
+      <ShowMoon />
     </div>
   </section>
 </template>
@@ -23,19 +23,20 @@
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { onMounted } from "vue";
+import ShowMoon from "@/objects/ShowMoon.vue";
 gsap.registerPlugin(ScrollTrigger)
 
 onMounted(() => {
   // 展示模型动画
   ScrollTrigger.create({
-    trigger:'.section2',
-    start:'top-=400 top',
-    end:'+=200',
-    scrub:true,
+    trigger: '.section2',
+    start: 'top-=400 top',
+    end: '+=200',
+    scrub: true,
     animation:
-        gsap.timeline()
-            .to('.section1',{y:'-=100',opacity:0})
-            .from('.section2',{y:'+=100',opacity:0},"<")
+      gsap.timeline()
+        .to('.section1', { y: '-=100', opacity: 0 })
+        .from('.section2', { y: '+=100', opacity: 0 }, "<")
   })
 })
 
@@ -73,7 +74,7 @@ onMounted(() => {
   left: 15%;
   font-size: 64px;
   font-weight: bold;
-  color: rgba(255,255,255,0.8);
+  color: rgba(255, 255, 255, 0.8);
   z-index: 2;
 }
 
@@ -85,7 +86,7 @@ onMounted(() => {
   font-size: 32px;
   color: rgba(255, 255, 255, 0.85);
   z-index: 2;
-  text-shadow: 0 0 8px rgba(255,255,255,0.6);
+  text-shadow: 0 0 8px rgba(255, 255, 255, 0.6);
 }
 
 /* 第二屏 */

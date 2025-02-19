@@ -14,7 +14,7 @@
   <!--  展示页 -->
   <section>
     <div class="container section2">
-      <ShowGITF/>
+      <WaterfallApp />
       <!-- <div style="position:absolute;top: 20%;left: 20%;font-size: 32px;font-weight: bold;color: #0d0f1a;width: 500px;">此处呈现Cesium地形模型</div> -->
     </div>
   </section>
@@ -24,23 +24,27 @@
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { onMounted } from "vue";
-import ShowGITF from "@/objects/ShowGITF.vue";
-
+// import ShowGITF from "@/objects/ShowGITF.vue";
+import WaterfallApp from '@/views/WaterfallApp.vue'
 gsap.registerPlugin(ScrollTrigger)
 
 onMounted(() => {
-  // 展示模型动画
   ScrollTrigger.create({
-    trigger:'.section2',
-    start:'top-=400 top',
-    end:'+=200',
-    scrub:true,
-    animation:
-      gsap.timeline()
-          .to('.section1',{y:'-=100',opacity:0})
-          .from('.section2',{y:'+=100',opacity:0},"<")
-  })
-})
+    trigger: '.section2',
+    start: 'top center',
+    end: 'bottom bottom',
+    scrub: true,
+    animation: gsap.timeline()
+      .to('.section1', { y: '-20%', opacity: 0 })
+      .fromTo('.section2', { y: '20%', opacity: 0 }, { y: '0%', opacity: 1 }, "<")
+  });
+
+  // 启用全局滚动
+  ScrollTrigger.config({
+    autoRefresh: true,
+    ignoreMobileResize: true
+  });
+});
 
 </script>
 
@@ -76,7 +80,7 @@ onMounted(() => {
   left: 15%;
   font-size: 64px;
   font-weight: bold;
-  color: rgba(255,255,255,0.8);
+  color: rgba(255, 255, 255, 0.8);
   z-index: 2;
 }
 
@@ -88,14 +92,18 @@ onMounted(() => {
   font-size: 32px;
   color: rgba(255, 255, 255, 0.85);
   z-index: 2;
-  text-shadow: 0 0 8px rgba(255,255,255,0.6);
+  text-shadow: 0 0 8px rgba(255, 255, 255, 0.6);
 }
 
 /* 第二屏 */
 .section2 {
   position: absolute;
+
   top: 100vh;
   left: 0;
   height: 100vh;
+  overflow-y: auto; /* 启用滚动条 */
+
 }
+
 </style>

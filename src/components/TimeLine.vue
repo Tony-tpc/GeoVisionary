@@ -70,7 +70,7 @@ const props = defineProps({
     },
     hourArr: {
         type: Array,
-        default: () => [0,0],
+        default: () => [0, 0],
     }
 });
 
@@ -118,11 +118,10 @@ const handleTimeLineChange = (val) => {
 
 // 时间计算
 const calculate = (value) => {
-    // console.log(value);
-    let rettime = ref([0, 0])// hour minute
-    rettime.value[0] = Math.floor(value.value / 5);
-    rettime.value[1] = Math.floor(value.value) % 5 * 24;
-    return rettime
+    // let rettime = ref([0, 0])// hour minute
+    // rettime.value[0] = Math.floor(value.value / 5);
+    // rettime.value[1] = Math.floor(value.value) % 5 * 24;
+    return value.value / maxValue.value
 }
 
 // 播放控制
