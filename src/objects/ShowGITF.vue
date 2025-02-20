@@ -1,5 +1,10 @@
 <template>
     <div ref="container" id="threeContainer"></div>
+    <LoadingProgress 
+      v-if="isLoading"
+      :progress="progress"
+      class="loading-progress"
+    />
     <div class="TimeLineBox">
         <div class="TimeLineBox_content">
             <TimeLine bgcolor="light" second="10" :nowValue="nowValue" :yearArr="yearArr"
@@ -11,9 +16,15 @@
 <script setup>
 import { ref, onMounted, onBeforeUnmount, onBeforeMount, computed, toRefs } from "vue";
 import TimeLine from "@/components/TimeLine.vue";
+import LoadingProgress from "@/components/LoadingProgress.vue";
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+const loadingProgress = ref(0);
+const loadingRef = ref(null);
+const isLoading = ref(true);
+const progress = ref(0);
 
 import { useRoute } from "vue-router";
 
@@ -116,8 +127,10 @@ function setupAdvancedLighting() {
 
 function loadModel() {
     const loader = new GLTFLoader();
-    loader.load(`/models/${query.id}.glb`,
+    loader.load(
+        `/models/${query.id}.glb`,
         (gltf) => {
+            isLoading.value = false;
             model = gltf.scene;
             model.scale.set(5, 5, 5);
             model.position.set(0, 0, 0);
@@ -141,7 +154,9 @@ function loadModel() {
                 }
             });
         },
-        undefined,
+        (xhr) => {
+            progress.value = xhr.loaded / xhr.total;
+        },
         (error) => {
             console.error('Error loading model:', error);
         }
@@ -284,5 +299,24 @@ function calculateSunColor(time) {
 
 canvas {
     display: block;
+}
+
+.loading-progress {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1000;
+  transition: opacity 0.5s ease-out;
+}
+
+.loading-progress {
+  --progress-color: #42b883;
+  --jump-animation: jump 0.8s infinite alternate;
+}
+
+@keyframes jump {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(-20px); }
 }
 </style>
