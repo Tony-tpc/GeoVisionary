@@ -22,3 +22,7 @@ tzdata==2024.1
 urllib3==2.3.0
 
 python-dotenv~=1.0.1
+websockets~=15.0
+channels~=4.2.0
+Markdown~=3.7
+beautifulsoup4~=4.13.3

@@ -5,6 +5,8 @@ import requests
 from django.http import HttpResponse, JsonResponse, StreamingHttpResponse
 from dotenv import load_dotenv
 from rest_framework.decorators import api_view
+import asyncio
+from .websocket_client import send_to_tts
 
 load_dotenv()
 DS_MODEL = os.environ.get("DS_MODEL")
@@ -151,6 +153,7 @@ def stream_llm_response(request):
                                     content_chunk += "<think>"
                                     has_reasoning_started = True
                                 content_chunk += reasoning
+                                asyncio.create_task(send_to_tts(reasoning))
 
                             # 处理正文内容
                             if content:
@@ -159,10 +162,12 @@ def stream_llm_response(request):
                                     content_chunk += "</think>"
                                     has_reasoning_ended = True
                                 content_chunk += content
+                                asyncio.create_task(send_to_tts(content))
 
                         else:
                             # 不存在该键，说明调用本地模型，已包含 think 标签
                             content_chunk += content
+                            asyncio.create_task(send_to_tts(content))
 
                         if content_chunk:
                             yield content_chunk
@@ -170,6 +175,9 @@ def stream_llm_response(request):
                     except Exception as e:
                         print("解析出错:", e)
 
+        # 运行事件流
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
         return StreamingHttpResponse(event_stream(), content_type='text/plain')
 
     except Exception as e:

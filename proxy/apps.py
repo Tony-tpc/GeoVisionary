@@ -17,8 +17,8 @@ class ProxyConfig(AppConfig):
         time.sleep(3)  # 等待服务初始化
         try:
             # 用 conda 运行 cosyvoice 虚拟环境
-            command = r'conda run -n cosyvoice python "C:\Study\Codes\CosyVoice\CosyVoice\cosyvoice_socket_server.py"'
-            subprocess.Popen(command, shell=True)
+            # command = r'conda run -n cosyvoice python "C:\Study\Codes\CosyVoice\CosyVoice\cosyvoice_socket_server.py"'
+            # subprocess.Popen(command, shell=True)
             print("CosyVoice Socket 服务器已拉起！")
         except Exception as e:
             print(f"CosyVoice 启动失败: {e}")

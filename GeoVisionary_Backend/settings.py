@@ -28,6 +28,8 @@ INSTALLED_APPS = [
     'neo4j',
     'neomodel',
     'django_neomodel',
+    "daphne",
+    "channels",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -38,6 +40,7 @@ INSTALLED_APPS = [
     'proxy.apps.ProxyConfig',
     'api.apps.ApiConfig',
 ]
+
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     "django.middleware.security.SecurityMiddleware",
@@ -87,7 +90,12 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = "GeoVisionary_Backend.wsgi.application"
-
+ASGI_APPLICATION = "GeoVisionary_Backend.asgi.application"
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels.layers.InMemoryChannelLayer",
+    },
+}
 
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
@@ -108,6 +116,7 @@ DATABASES = {
     }
 }
 
+RUN_SERVER_PORT = 8040
 NEOMODEL_NEO4J_BOLT_URL = "bolt://neo4j:123456789@localhost:7687"
 
 # Password validation
