@@ -80,11 +80,11 @@
   <!--  首页背景图及标题 -->
   <section>
     <div class="container section1">
-      <img src="@/assets/Full-Graph-test-1.png" alt="知象图谱" loading="lazy" class="image1">
-      <img src="@/assets/Full-Graph-test-2.jpg" alt="知象图谱" loading="lazy" class="image2">
+      <img src="@/assets/Full-Graph-test-1.png" alt="万象图谱" loading="lazy" class="image1">
+      <img src="@/assets/Full-Graph-test-2.jpg" alt="万象图谱" loading="lazy" class="image2">
     </div>
     <div class="section1-title">
-      知象图谱
+      万象图谱
     </div>
     <div class="section1-subtitle">
       在这里，大自然的智慧以线条与节点的形式呈现，连接着山川、星辰及气候的宏伟交响。每一次探索都是心灵之旅，带你穿越知识的海洋，领略地理之美的无限可能。

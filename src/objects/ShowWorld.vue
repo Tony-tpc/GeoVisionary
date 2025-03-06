@@ -233,7 +233,7 @@ const closeContextMenu = () => {
     contextMenu.value.visible = false;
 };
 </script>
-<style>
+<style scoped>
 /* 调整地图容器样式 */
 #leafletMap {
     flex: 1;
@@ -294,13 +294,4 @@ const closeContextMenu = () => {
     transform: translateX(4px);
 }
 
-
-:root {
-    --primary: #191C44;
-    --secondary: #1A1D79;
-    --tertiary: #0587cc;
-    --text: #F3F3F3;
-    --dark: #05051A;
-    --radius: 18px;
-}
 </style>

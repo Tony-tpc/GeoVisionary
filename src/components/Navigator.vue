@@ -56,7 +56,7 @@
                 <el-menu-item index="/navigator/geo-graph"
                               :class="['regular',{ 'dark-theme': data.isDarkMode },{ 'active-item-1': data.activeIndex === '/navigator/geo-graph' }]"
                 >
-                  <span :class="['menu-fonts',{ 'dark-theme': data.isDarkMode }]" :style="{ color: data.activeIndex === '/navigator/geo-graph' ? '#fffdf3' : 'var(--text-color)' }">知象图谱</span>
+                  <span :class="['menu-fonts',{ 'dark-theme': data.isDarkMode }]" :style="{ color: data.activeIndex === '/navigator/geo-graph' ? '#fffdf3' : 'var(--text-color)' }">万象图谱</span>
                 </el-menu-item>
                 <el-menu-item index="/navigator/insight-lab"
                               :class="['regular',{ 'dark-theme': data.isDarkMode },{ 'active-item-3': data.activeIndex === '/navigator/insight-lab' }]"

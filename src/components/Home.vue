@@ -87,7 +87,7 @@
           :color="customColorMethod"
       >
         <span v-if="data.percentage[0] < 25" class="progress-font">智绘天地</span>
-        <span v-else-if="data.percentage[0] < 50" class="progress-font">知象图谱</span>
+        <span v-else-if="data.percentage[0] < 50" class="progress-font">万象图谱</span>
         <span v-else-if="data.percentage[0] < 75" class="progress-font">探知问学</span>
         <span v-else class="progress-font">智荐学堂</span>
         <span class="progress-font">{{ parseInt(data.percentage[0]) }}%</span>
@@ -103,14 +103,14 @@
         <img src="@/assets/Landform-test.png" alt="智绘天地" loading="lazy" class="section2-img1"/>
         <img src="@/assets/Moon-phase-test.png" alt="智绘天地" loading="lazy" class="section2-img2"/>
       </div>
-      <!--    知象图谱介绍  -->
+      <!--    万象图谱介绍  -->
       <div class="page3">
         <h2 class="section2-title">知识图谱 + AI 互动</h2>
         <div class="step-item">Step 2: 学习</div>
         <p class="section2-subtitle">结构化知识，AI 助教解答</p>
         <p class="section2-text"><strong>地理知识图谱</strong>通过结构化的方式帮助学生全面理解地理学科的知识体系。借助<strong>AI技术</strong>，我们将复杂的地理学概念和数据组织成图谱，学生可以通过图谱轻松获取相关知识。在学习过程中，<strong>AI助教</strong>会实时解答学生的问题，结合<strong>大数据分析</strong>为学生提供定制化学习路径，帮助学生在最短时间内掌握所需知识。</p>
-        <img src="@/assets/Geo-graph-test.png" alt="知象图谱" loading="lazy" class="section2-img1"/>
-        <img src="@/assets/Geo-graph-test-2.jpeg" alt="知象图谱" loading="lazy" class="section2-img2"/>
+        <img src="@/assets/Geo-graph-test.png" alt="万象图谱" loading="lazy" class="section2-img1"/>
+        <img src="@/assets/Geo-graph-test-2.jpeg" alt="万象图谱" loading="lazy" class="section2-img2"/>
       </div>
       <!--    探知问学介绍  -->
       <div class="page4">

@@ -48,7 +48,7 @@ const lastLlmIndex = computed(() => {
 </script>
 
 <template>
-  <div class="chat-container">
+  <div class="chat-messages-container">
     <div
         v-for="(message, index) in messages"
         :key="index"
@@ -86,7 +86,7 @@ const lastLlmIndex = computed(() => {
 
 <style scoped>
 /* 禁用滚动的同时确保内容扩展 */
-.chat-container {
+.chat-messages-container {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;

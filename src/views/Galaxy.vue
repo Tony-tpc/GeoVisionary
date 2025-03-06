@@ -21,35 +21,6 @@
 
 <script setup>
 import ShowSolar from "@/objects/ShowSolar.vue";
-import { gsap } from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { onMounted } from "vue";
-
-gsap.registerPlugin(ScrollTrigger)
-
-
-onMounted(() => {
-  // 展示模型动画
-  ScrollTrigger.create({
-    trigger:'.section2',
-    start:'top-=200 top',
-    end:'+=200',
-    scrub:true,
-    animation:
-        gsap.timeline()
-            .to('.section1',{opacity:0})
-  });
-  ScrollTrigger.create({
-    trigger:'.section1',
-    start:'top top',
-    end:'+=300',
-    scrub:true,
-    animation:
-        gsap.timeline()
-            .from('.section2',{opacity:0})
-  });
-});
-
 </script>
 
 <style scoped>
@@ -84,8 +55,9 @@ onMounted(() => {
   left: 15%;
   font-size: 64px;
   font-weight: bold;
-  color: rgba(255,255,255,0.8);
+  color: #fff;
   z-index: 2;
+  mix-blend-mode: difference;
 }
 
 /* 首页副标题 */
@@ -94,9 +66,9 @@ onMounted(() => {
   top: 30%;
   left: 15%;
   font-size: 32px;
-  color: rgba(255, 255, 255, 0.85);
+  color: #fff;
   z-index: 2;
-  text-shadow: 0 0 8px rgba(255,255,255,0.6);
+  mix-blend-mode: difference;
 }
 
 /* 第二屏 */
