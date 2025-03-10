@@ -28,7 +28,7 @@ INSTALLED_APPS = [
     'neo4j',
     'neomodel',
     'django_neomodel',
-    "daphne",
+    'daphne',
     "channels",
     "django.contrib.admin",
     "django.contrib.auth",
@@ -91,11 +91,24 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "GeoVisionary_Backend.wsgi.application"
 ASGI_APPLICATION = "GeoVisionary_Backend.asgi.application"
+
 CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels.layers.InMemoryChannelLayer",
     },
 }
+
+# CHANNEL_LAYERS = {
+#     "default": {
+#         "BACKEND": "channels_redis.core.RedisChannelLayer",
+#         "CONFIG": {
+#             "hosts": [("127.0.0.1", 6379)],
+#         },
+#     },
+# }
+
+USE_X_FORWARDED_HOST = True
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases

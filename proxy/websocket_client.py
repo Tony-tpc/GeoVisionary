@@ -1,8 +1,6 @@
-import asyncio
 import websockets
 import markdown
 from bs4 import BeautifulSoup
-
 
 STOP_PUNCTUATIONS = {'.', '。', '!', '！', '?', '？', '；', ';', '，', ','}
 

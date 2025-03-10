@@ -10,12 +10,12 @@ https://docs.djangoproject.com/en/5.1/howto/deployment/asgi/
 import os
 from django.core.asgi import get_asgi_application
 from channels.routing import ProtocolTypeRouter, URLRouter
-import proxy.routing
+from GeoVisionary_Backend import routings
+from GeoVisionary_Backend.middlewares import StreamingMiddleware
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "GeoVisionary_Backend.settings")
 
 application = ProtocolTypeRouter({
-    "http": get_asgi_application(),
-    "websocket": URLRouter(proxy.routing.websocket_urlpatterns),
+    "http": StreamingMiddleware(get_asgi_application()),  # http 路由
+    "websocket": URLRouter(routings.websocket_urlpatterns),  # WebSocket 路由
 })
-

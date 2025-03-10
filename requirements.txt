@@ -26,3 +26,5 @@ websockets~=15.0
 channels~=4.2.0
 Markdown~=3.7
 beautifulsoup4~=4.13.3
+websocket-client~=1.8.0
+httpx~=0.28.1

@@ -1,8 +1,12 @@
 import json
 import os
 
+import httpx
 import requests
-from django.http import HttpResponse, JsonResponse, StreamingHttpResponse
+from django.http import HttpResponse, JsonResponse, StreamingHttpResponse, HttpRequest
+from django.utils.encoding import force_bytes
+from django.views.decorators.cache import never_cache
+from django.views.decorators.csrf import csrf_exempt
 from dotenv import load_dotenv
 from rest_framework.decorators import api_view
 import asyncio
@@ -78,108 +82,3 @@ def bilibili(request):
     except requests.RequestException as error:
         print('代理请求 Bilibili API 失败', error)
         return HttpResponse('获取数据失败', status=500)
-
-@api_view(['POST'])
-def stream_llm_response(request):
-    try:
-        body = json.loads(request.body)
-        chat_history = body.get('messages', [])
-
-        model = body.get('model', 'deepseek-r1-distill-llama-8b')
-        url = "http://localhost:1234/v1/chat/completions"
-        headers = {
-            "Content-Type": "application/json",
-        }
-        payload = {
-            "model": model,
-            "messages": chat_history,
-            "max_tokens": 4096,
-            "temperature": 0.6,
-            "stream": True,
-        }
-
-        url_ds = "https://api.siliconflow.cn/v1/chat/completions"
-        headers_ds = {
-            "Authorization": f"Bearer {DS_KEY}",
-            "Content-Type": "application/json",
-        }
-        payload_ds = {
-            "model": f"{DS_MODEL}",
-            "messages": chat_history,
-            "stream": True,
-            "max_tokens": 4096,
-            "temperature": 0.6,
-            "top_p": 0.7,
-        }
-
-        # 请求 LLM 接口
-        response = requests.post(url_ds, headers=headers_ds, json=payload_ds, stream=True)
-        # response = requests.post(url, headers=headers, json=payload,stream=True)
-        if response.status_code != 200:
-            return JsonResponse({'error': 'LLM 请求失败'}, status=500)
-
-        def event_stream():
-            # 状态变量
-            has_reasoning_started = False
-            has_reasoning_ended = False
-
-            decoder = response.iter_lines()
-            for chunk in decoder:
-                if not chunk.strip():
-                    continue
-
-                if chunk == b"data: [DONE]":
-                    # 处理最后未闭合的标签
-                    if has_reasoning_started and not has_reasoning_ended:
-                        yield ""
-                    yield "[DONE]"
-                    break
-
-                if chunk.startswith(b"data:"):
-                    try:
-                        json_data = json.loads(chunk[6:])  # 去掉"data: "前缀
-                        delta = json_data.get("choices", [{}])[0].get("delta", {})
-
-                        # 变量初始化
-                        content_chunk = ""
-                        reasoning = delta.get("reasoning_content", "")
-                        content = delta.get("content", "")
-                        key = "reasoning_content"
-
-                        if key in delta:
-                            # 处理思考内容
-                            if reasoning:
-                                if not has_reasoning_started:
-                                    content_chunk += "<think>"
-                                    has_reasoning_started = True
-                                content_chunk += reasoning
-                                asyncio.create_task(send_to_tts(reasoning))
-
-                            # 处理正文内容
-                            if content:
-                                # 如果思考内容未闭合，先闭合
-                                if has_reasoning_started and not has_reasoning_ended:
-                                    content_chunk += "</think>"
-                                    has_reasoning_ended = True
-                                content_chunk += content
-                                asyncio.create_task(send_to_tts(content))
-
-                        else:
-                            # 不存在该键，说明调用本地模型，已包含 think 标签
-                            content_chunk += content
-                            asyncio.create_task(send_to_tts(content))
-
-                        if content_chunk:
-                            yield content_chunk
-
-                    except Exception as e:
-                        print("解析出错:", e)
-
-        # 运行事件流
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        return StreamingHttpResponse(event_stream(), content_type='text/plain')
-
-    except Exception as e:
-        print("错误:", e)
-        return JsonResponse({'error': '内部错误'}, status=500)

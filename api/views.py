@@ -37,7 +37,6 @@ prompt = r"""
    - 经济发展：{经济发展}
 """
 
-
 def sendTX(lat, lng):
     try:
         address = (
@@ -64,6 +63,7 @@ def sendTX(lat, lng):
     except (requests.RequestException, KeyError, json.JSONDecodeError) as e:
         print(f"API请求失败: {e}")
         return None
+
 
 
 @api_view(['POST'])
