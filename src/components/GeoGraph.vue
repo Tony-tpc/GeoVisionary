@@ -10,16 +10,25 @@
       <canvas ref="canvas" class="live2Dmodel" @click="changeDisplay"></canvas>
       <!--  便捷标签 -->
       <div class="convenient-tags-container">
-        <el-button class="zoom-outputArea-btn" @click="changeOutputArea">
+        <el-button class="zoom-outputArea-btn"
+                   @click="changeOutputArea"
+                   @mouseenter="() => showTooltip('zoom')"
+                   @mouseleave="() => hideTooltip('zoom')"
+                   type="primary">
           <el-icon v-if="!data.changeArea"><ZoomIn /></el-icon>
           <el-icon v-else><ZoomOut /></el-icon>
         </el-button>
-        <el-button class="refresh-outputArea-btn" @click="refreshPosition"
-                   @mouseenter="animateTooltip('show')"
-                   @mouseleave="animateTooltip('hide')">
+        <el-button class="refresh-outputArea-btn"
+                   @click="refreshPosition"
+                   @mouseenter="() => showTooltip('refresh')"
+                   @mouseleave="() => hideTooltip('refresh')"
+                   type="primary">
           <el-icon><Refresh /></el-icon>
         </el-button>
-        <div class="gsap-tooltip">重置输出框</div>
+      </div>
+      <div class="tooltips">
+        <div class="zoom-tooltip" :ref="(el) => tooltips.zoom = el">{{ data.changeArea ? '缩小输出框' : '放大输出框' }}</div>
+        <div class="refresh-tooltip" :ref="(el) => tooltips.refresh = el">重置输出框</div>
       </div>
       <!--   输入和输出   -->
       <div class="LLM-input-output">
@@ -75,13 +84,15 @@
           />
         </div>
       </div>
+      <div class="summary-output" ref="summaryRef">你好呀，我是小春<br>单击我即可与我对话哟！</div>
     </div>
   </section>
   <!--  首页背景图及标题 -->
   <section>
     <div class="container section1">
-      <img src="@/assets/Full-Graph-test-1.png" alt="万象图谱" loading="lazy" class="image1">
-      <img src="@/assets/Full-Graph-test-2.jpg" alt="万象图谱" loading="lazy" class="image2">
+      <img src="@/assets/GeoGraph(summary).png" alt="万象图谱" loading="lazy" class="image1">
+      <img src="@/assets/GeoGraph(tourism).png" alt="万象图谱" loading="lazy" class="image2">
+      <img src="@/assets/GeoGraph(disaster).png" alt="万象图谱" loading="lazy" class="image3">
     </div>
     <div class="section1-title">
       万象图谱
@@ -116,12 +127,16 @@ gsap.registerPlugin(ScrollTrigger,Draggable);
 window.PIXI = PIXI;
 
 const data = reactive({
-  textInput:"",
-  changeArea:false,
-  displayEverything:false,
-  isDisabled:false,
-  nodeInfo:[],
+  textInput:"", // 用户输入内容
+  changeArea:false, // 输出框大小更改
+  displayEverything:false, // 显示/隐藏输入/输出
+  isDisabled:false, // 启用/禁用提交按钮，防止连续触发
+  nodeInfo:[], // neo4j 节点
 })
+
+// 用 reactive 存多个 tooltip ref
+const tooltips = reactive({
+});
 
 // live2D
 const canvas = ref(null); // live2D 载体
@@ -135,14 +150,21 @@ const conversation = ref([  { sender: 'llm', content: '您好呀，我是您的�
 const streamingMessageRef = ref(null); // 当前流式消息的引用
 let controller = new AbortController();  // 用于控制请求
 let reader = null;  // 读取流
+const autoScroll = ref(true); // 输出自动滚动到底部
+const outputAreaRef = ref(null); // 拖动/复原输出框
 
-// 其他内容
+// 便捷按钮
 const inputBoxes = ref([]); // 标签盒
 const isActive = ref(true); // 切换便捷模式
-const autoScroll = ref(true);
-const outputAreaRef = ref(null);
 
-// 封装 Live2D 加载逻辑
+// Live2D 对话
+const audioQueue = ref([]); // 音频缓存区
+const summaryRef = ref(null); // 概要DOM
+const thinkingContent = ref(''); // 思考内容
+let isThinkingActive = false; // 标志变量，防止思考动画重复执行
+let audioContext; // 音频上下文
+
+// Live2D 加载逻辑
 const loadLive2D = async () => {
   try {
     // 如果存在 PIXI 实例，便销毁
@@ -166,17 +188,20 @@ const loadLive2D = async () => {
     });
 
     // 加载 Live2D 模型
-    // "https://cdn.jsdelivr.net/gh/guansss/pixi-live2d-display/test/assets/haru/haru_greeter_t03.model3.json"
-    // "/haru/haru_greeter_t03.model3.json"
-    // "/maolili/mailili.model3.json"
-    // "/ariu/ariu.model3.json"
-    // "/IceGIrl Live2D/IceGirl.model3.json"
-    model.value = await Live2DModel.from("/haru/haru_greeter_t03.model3.json");
+    const live2DModelUrls = {
+      haruCDN: "https://cdn.jsdelivr.net/gh/guansss/pixi-live2d-display/test/assets/haru/haru_greeter_t03.model3.json",
+      haru: "/haru/haru_greeter_t03.model3.json",
+      maolili: "/maolili/mailili.model3.json",
+      ariu: "/ariu/ariu.model3.json",
+      IceGirl: "/IceGIrl Live2D/IceGirl.model3.json",
+    }
+
+    model.value = await Live2DModel.from(live2DModelUrls.haru);
     app.value.stage.addChild(model.value);
 
     // 调整模型大小
     model.value.scale.set(0.2);
-    model.value.x = -60;
+    model.value.x = -80;
 
     console.log("Live2D 模型加载成功");
   } catch (error) {
@@ -184,7 +209,7 @@ const loadLive2D = async () => {
   }
 }
 
-// 更新live2D位置
+// 更新 Live2D 位置
 const updatePosition = () => {
   model.value.x = -0.05 * window.innerWidth;
 };
@@ -194,14 +219,121 @@ const chatHistory = ref([
   { role: "system", content: "你是一位经验丰富的高中地理老师，你的学生目前遇到了一些地理问题，你需要耐心地帮助他解决问题，并通俗易懂地讲解。记住，你只能用中文思考和回答。如果他输入的是其他方面的问题，也请像个老师一样耐心教导他。" }
 ]);
 
-// 向本地LLM发送流式请求
-const chatWithLLM = async () => {
+// 模拟流式输出效果
+const typeEffect = async () => {
+  summaryRef.value.innerHTML = '';
+
+  for (let i = 0; i < thinkingContent.value.length; i++) {
+    summaryRef.value.innerHTML += thinkingContent.value[i];
+    await new Promise(resolve => setTimeout(resolve, 250)); // 等待 250ms 再继续
+  }
+}
+
+// 根据音频调整 Live2D 口型
+const speaking = (audio) => {
+  if (!audioContext) {
+    audioContext = new AudioContext();
+  }
+
+  const analyser = audioContext.createAnalyser();
+  analyser.fftSize = 512;  // 提升分析精度
+  analyser.smoothingTimeConstant = 0.3;
+
+  // 连接 Audio 标签的音频流到 analyser
+  const source = audioContext.createMediaElementSource(audio);
+  source.connect(analyser);
+  analyser.connect(audioContext.destination); // 保证音频能正常播放
+
+  const updateMouth = () => {
+    const dataArray = new Uint8Array(analyser.frequencyBinCount);
+    analyser.getByteFrequencyData(dataArray);
+
+    const volume = dataArray.reduce((a, b) => a + b) / dataArray.length;
+    const mouthOpen = Math.min(1, volume / 50); // 根据实际情况调整分母
+
+    console.log("当前模型参数:", model?.value?.internalModel?.coreModel?.parameters);
+
+    if (model?.value) {
+      model.value.internalModel.motionManager.update = () => {}; // 防止 Live2D 覆盖参数
+      model.value.internalModel.coreModel.setParameterValueById('ParamMouthOpenY', mouthOpen); // 设置口型参数
+    }
+
+    if (!audio.paused && !audio.ended) {
+      requestAnimationFrame(updateMouth);
+    }
+  };
+
+  updateMouth();
+};
+
+// 播放音频队列
+const playAudioQueue = () => {
+  if (audioQueue.value.length === 0) return;
+
+  if (!audioContext) {
+    audioContext = new AudioContext();
+  }
+
+  const audioUrl = audioQueue.value.shift(); // 取出队列中的音频
+  const audio = new Audio(audioUrl);
+
+  audio.addEventListener('play', () => {
+    console.log("开始播放音频");
+    speaking(audio); // 绑定口型同步
+  });
+
+  audio.addEventListener('ended', () => {
+    console.log("音频播放结束");
+    if (model?.value) {
+      model.value.parameters['ParamMouthOpenY'] = 0; // 关闭嘴巴
+    }
+    if (audioQueue.value.length > 0) {
+      playAudioQueue(); // 继续播放下一个音频
+    }
+  });
+
+  audio.play();
+};
+
+// 解析 base64 为 URL
+const base64ToAudioUrl = (base64) => {
+  const byteString = atob(base64);
+  const uint8Array = new Uint8Array(byteString.length);
+  for (let i = 0; i < byteString.length; i++) {
+    uint8Array[i] = byteString.charCodeAt(i);
+  }
+  const audioBlob = new Blob([uint8Array], { type: 'audio/wav' });
+  return URL.createObjectURL(audioBlob);
+}
+
+// 等待思考动画
+const waitForThinking = async () => {
+  let i = 0;
+  const timeout = 500;
+  isThinkingActive = true;  // 标记动画开始
+
+  while(!thinkingContent.value && isThinkingActive) {
+    if (i % 4 === 0) {
+      summaryRef.value.innerHTML = '思考中';
+    } else {
+      summaryRef.value.innerHTML += '.';
+    }
+    await new Promise(resolve => setTimeout(resolve, timeout));
+    i++;
+  }
+}
+
+// 向LLM发送流式请求
+const chatWithLLM = () => {
   isGenerating.value = true; // 进入生成状态
   showCursor.value = true; // 显示光标
 
-  // 创建新的控制器
-  controller = new AbortController();
-  const signal = controller.signal;
+  // 创建 WebSocket 连接
+  const ws = new WebSocket('ws://localhost:8040/ws/tts/');
+  thinkingContent.value = '';
+  waitForThinking();
+
+  let doneReceived = false; // 用于标记是否收到 [DONE]
 
   if(data.textInput || inputBoxes.value) {
     let userContent = data.textInput;
@@ -212,102 +344,131 @@ const chatWithLLM = async () => {
       }
       userContent += `${inputBoxes.value[inputBoxes.value.length - 1].input}的内容）`;
     }
+
     // 把用户输入添加到历史记录
     const userMessage = { role: "user", content: userContent };
     chatHistory.value.push(userMessage);
-    conversation.value.push({ // 同时添加到对话列表
+    conversation.value.push({
       sender: 'user',
       content: userContent
     });
-    // 创建并添加流式消息占位符
+
+    // 创建流式消息占位符
     const streamMessage = {
       sender: 'llm',
       content: '',
       isStreaming: true
     };
     conversation.value.push(streamMessage);
-    streamingMessageRef.value = streamMessage; // 保存当前流式消息引用
-    try {
-      const response = await fetch("http://localhost:8040/proxy/chat/", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "deepseek-r1-distill-llama-8b", // phi-4 deepseek-r1-distill-llama-8b deepseek-r1-distill-qwen-14b
-          messages: chatHistory.value,
-          temperature: 0.6,
-          max_tokens: 4096,
-          stream: true, // 启用流式返回
-        }),
-        signal,// 绑定信号
-      });
+    streamingMessageRef.value = streamMessage;
 
-      if (!response.ok || !response.body) throw new Error("LLM 请求失败");
+    // 连接建立后发送请求
+    ws.onopen = () => {
+      isThinkingActive = true;  // 允许动画运行
+      ws.send(JSON.stringify({
+        messages: chatHistory.value,
+        llm: "ds"
+      }));
+    };
 
-      // 获取可读流
-      reader = response.body.getReader();
-      const decoder = new TextDecoder("utf-8");
-
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        // 先解码成字符串
-        const chunk = decoder.decode(value, { stream: true });
-        if (chunk === "[DONE]") {
+    // WebSocket 事件处理
+    ws.onmessage = (event) => {
+      const chunk = JSON.parse(event.data);
+      if (chunk.type === 'text') {
+        if (chunk.content === '[DONE]') {
           console.log("流式结束");
-          break; // 停止流式读取
-        }
-        streamingMessageRef.value.content += chunk;
-
-        // // 解析 JSON，提取内容
-        // const lines = chunk.split("\n"); // API 可能返回多行
-        // for (const line of lines) {
-        //   if (line.trim().startsWith("data:")) {
-        //     try {
-        //       const json = JSON.parse(line.replace("data: ", ""));
-        //       if (json.choices && json.choices[0].delta.content) {
-        //         // 实时更新流式消息内容
-        //         streamingMessageRef.value.content += json.choices[0].delta.content;
-        //       }
-        //     } catch (err) {
-        //       console.error("解析错误:", err);
-        //     }
-        //   }
-        // }
-      }
-      // 生成完成后，把 LLM 的回复也加入历史记录
-      chatHistory.value.push({ role: "assistant", content: streamingMessageRef.value.content});
-      console.log(chatHistory.value);
-    } catch (error) {
-      if (error.name === 'AbortError') {
-        console.log('请求中止');
-        // 移除未完成的流式消息
-        const index = conversation.value.indexOf(streamingMessageRef.value);
-        if (index > -1) conversation.value.splice(index, 1);
-      } else {
-        console.error('请求失败:', error);
-        // 标记错误状态
-        streamingMessageRef.value.error = true;
-        streamingMessageRef.value.content += '\n[生成中断]';
-      }
-    } finally {
-      isGenerating.value = false; // 结束生成状态
-      showCursor.value = false; // 隐藏光标
-      streamingMessageRef.value = null;
-
-      // 恢复按钮状态
-      setTimeout(() => {
-        const submitBtn = document.querySelector('.submit-btn');
-        if (!submitBtn) {
-          console.warn("按钮不存在，无法设置样式");
+          doneReceived = true;
+          streamingMessageRef.value.isStreaming = false;
+          checkAndCloseWebSocket(); // 检查是否可以关闭 WebSocket
           return;
         }
+        if (!doneReceived) {
+          streamingMessageRef.value.content += chunk.content;
+        }
+      }
+
+      if (chunk.type === 'error') {
+        streamingMessageRef.value.content += `\n[错误 : ${chunk.details}]`;
+        streamingMessageRef.value.isStreaming = false;
+        throw new Error(chunk.details);
+      }
+
+      if (chunk.type === 'summary') {
+        console.log("概括内容:", chunk.content);
+
+        if (!thinkingContent.value) {
+          thinkingContent.value = chunk.content;
+          typeEffect();  // 调用异步打字机效果
+        }
+
+        if (chunk.audio) {
+          checkAndCloseWebSocket();
+          audioQueue.value.push(base64ToAudioUrl(chunk.audio));
+          playAudioQueue();
+        }
+      }
+
+      if (chunk.type === 'audio') {
+        console.log("主音频已忽略（仅概括生成音频）");
+      }
+    };
+
+    ws.onerror = (error) => {
+      // 将错误输出到内容中
+      console.error('WebSocket 错误:', error);
+      streamingMessageRef.value.error = true;
+      streamingMessageRef.value.content += '\n[连接错误]';
+      streamingMessageRef.value.isStreaming = false;
+      isThinkingActive = false;  // 停止动画
+      summaryRef.value.innerHTML = '啊呀！好像发生错误了呢，再试一次吧';
+      ws.close();
+    };
+
+    ws.onclose = () => {
+      // 生成完成后，把 LLM 的回复加入历史记录
+      if (streamingMessageRef.value?.content) {
+        chatHistory.value.push({
+          role: "assistant",
+          content: streamingMessageRef.value.content
+        });
+      }
+      isThinkingActive = false;  // 停止动画
+      cleanup();
+    };
+
+    // 中止处理
+    controller = {
+      abort: () => {
+        streamingMessageRef.value.content += '\n[用户终止]';
+        isThinkingActive = false;  // 停止动画
+        summaryRef.value.innerHTML = '是不是打错字啦？没关系的，重新输入一遍吧';
+        ws.close();
+        cleanup();
+      }
+    };
+  }
+  // 检查是否可以安全关闭 WebSocket
+  const checkAndCloseWebSocket = () => {
+    if (doneReceived && thinkingContent.value) {
+      console.log("所有数据接收完毕，关闭 WebSocket");
+      ws.close();
+    }
+  };
+
+  // 清理函数
+  const cleanup = () => {
+    isGenerating.value = false;
+    showCursor.value = false;
+    streamingMessageRef.value = null;
+
+    setTimeout(() => {
+      const submitBtn = document.querySelector('.submit-btn');
+      if (submitBtn) {
         submitBtn.style.display = "block";
         submitBtn.style.opacity = "1";
-      }, 40);  // 让浏览器有时间渲染 `.submit-btn`
-    }
-  }
+      }
+    }, 40);
+  };
 };
 
 // 中断LLM生成函数
@@ -430,25 +591,24 @@ const handleScroll = () => {
   autoScroll.value = isAtBottom; // 离底部50px内视为自动滚动开启
 };
 
-// GSAP控制
-function animateTooltip(action) {
-  const tooltip = document.querySelector('.gsap-tooltip');
+// 按钮信息提示（悬停触发）
+// 显示 tooltip
+const showTooltip = (key) => {
+  if (!tooltips[key]) return;
+  gsap.to(tooltips[key], {
+    opacity: 1,
+    duration: 0.2,
+  });
+};
 
-  if(action === 'show') {
-    gsap.to(tooltip, {
-      opacity: 1,
-      duration: 0.3,
-      onUpdate: () => {
-        // 实时跟随鼠标
-        const mouseX = event.clientX + 15;
-        const mouseY = event.clientY + 15;
-        gsap.set(tooltip, { x: mouseX, y: mouseY });
-      }
-    });
-  } else {
-    gsap.to(tooltip, { opacity: 0, duration: 0.2 });
-  }
-}
+// 隐藏 tooltip
+const hideTooltip = (key) => {
+  if (!tooltips[key]) return;
+  gsap.to(tooltips[key], {
+    opacity: 0,
+    duration: 0.3,
+  });
+};
 onMounted(() => {
   // 加载监听器
   window.addEventListener('resize', updatePosition);
@@ -459,6 +619,8 @@ onMounted(() => {
       .to('.image1',{opacity:0,scale:0.75,duration:3,ease:'none'})
       .to('.image2',{opacity:1,scale:1,duration:3,ease:'none'})
       .to('.image2',{opacity:0,scale:0.75,duration:3,ease:'none'})
+      .to('.image3',{opacity:1,scale:1,duration:3,ease:'none'})
+      .to('.image3',{opacity:0,scale:0.75,duration:3,ease:'none'})
 
   // 拖动动画
   Draggable.create(".outputArea",{
@@ -485,8 +647,20 @@ onMounted(() => {
             .from('.section2',{y:'+=100',opacity:0},"<")
   });
 
+  // 标签颜色映射函数
+  const getColorByLabel = (label) => {
+    const colorMap = {
+      Topic: '#FF6B6B',
+      FirstLevelBranch: '#4ECDC4',
+      SecondLevelBranch: '#45B7D1',
+      ThirdLevelBranch: '#96CEB4',
+      FourthLevelBranch: '#FFEEAD'
+    };
+    return colorMap[label] || '#C0C0C0';
+  }
+
   // 渲染知识图谱
-  async function renderKnowledgeGraph() {
+  const renderKnowledgeGraph = async () => {
     const driver = neo4j.driver(
         "bolt://localhost:7687",
         neo4j.auth.basic("neo4j", "123456789")
@@ -617,18 +791,6 @@ onMounted(() => {
     }
   }
 
-  // 标签颜色映射函数
-  function getColorByLabel(label) {
-    const colorMap = {
-      Topic: '#FF6B6B',
-      FirstLevelBranch: '#4ECDC4',
-      SecondLevelBranch: '#45B7D1',
-      ThirdLevelBranch: '#96CEB4',
-      FourthLevelBranch: '#FFEEAD'
-    };
-    return colorMap[label] || '#C0C0C0';
-  }
-
   // 执行渲染
   renderKnowledgeGraph();
 });
@@ -685,6 +847,8 @@ watch(() => data.displayEverything, () => {
 </script>
 
 <style scoped>
+@import url('https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&display=swap');
+
 /* 标签展示框 */
 .tag-container {
   position: fixed;
@@ -790,12 +954,59 @@ watch(() => data.displayEverything, () => {
   z-index: 11;
   display: none;
   opacity: 0;
-  background-color: rgba(0,0,0,.8);
+  background-color: rgba(180, 170, 170, 0.5);
   pointer-events: auto;
 }
 
+/* 概要输出 */
+.summary-output {
+  position: fixed;
+  top: 35%;
+  right: 12%;
+  z-index: 103;
+  letter-spacing: 1px;
+  background: linear-gradient(135deg, #fffdf3, #ffebcd); /* 柔和渐变背景 */
+  color: #4b3f3f;
+  font-family: 'ZCOOL KuaiLe', sans-serif;
+  font-size: 18px;
+  padding: 14px 22px;
+  border-radius: 20px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  max-width: 300px;
+  word-wrap: break-word;
+  animation: fadeInUp 0.5s ease-out;
+  transition: all 0.3s ease-in-out;
+}
+
+/* 气泡底部的小圆点模拟云朵 */
+.summary-output::before,
+.summary-output::after {
+  content: "";
+  position: absolute;
+  bottom: -10px; /* 让装饰元素位于文本框下方 */
+  background: #ffebcd;
+  border-radius: 50%;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+/* 小圆 */
+.summary-output::before {
+  width: 18px;
+  height: 18px;
+  right: 2%; /* 控制偏移 */
+  bottom: -50px;
+}
+
+/* 大圆 */
+.summary-output::after {
+  width: 25px;
+  height: 25px;
+  right: 20px; /* 控制偏移 */
+  bottom: -30px;
+}
+
 /* 悬停提示文字 */
-.gsap-tooltip {
+.refresh-tooltip,.zoom-tooltip {
   position: fixed;
   background: rgba(0,0,0,0.8);
   color: white;
@@ -803,7 +1014,14 @@ watch(() => data.displayEverything, () => {
   border-radius: 4px;
   pointer-events: none;
   opacity: 0;
-  rotate: -90deg;
+  right: 12%;
+  z-index: 102;
+}
+.refresh-tooltip {
+  bottom: 22%;
+}
+.zoom-tooltip {
+  bottom: 28%;
 }
 
 /* Live2D */
@@ -828,7 +1046,6 @@ canvas {
   display: flex;
   justify-content: center;
   align-items: center;
-  background-color: #0d0f1a;
 }
 
 /* 便捷标签 */
@@ -863,7 +1080,7 @@ canvas {
 }
 
 /* 轮播图图片 */
-.image1,.image2 {
+.image1,.image2,.image3 {
   position: absolute;
   top: 0;
   left: 0;
@@ -872,6 +1089,7 @@ canvas {
   opacity: 0;
   scale: 1.25;
   z-index: 1;
+  object-fit: cover;
 }
 
 /* 首页大标题 */

@@ -35,25 +35,27 @@ const timer = ref(null)
 const isExpanded = ref(!props.isFolded);
 const isThinking = ref(false);
 const handleFoldButton = (identifier) => {
-  isExpanded.value = !isExpanded.value;
-  // 设置展示
-  const thinkingDetail = document.querySelector(identifier);
+  if (parsedContent.value.main) {
+    isExpanded.value = !isExpanded.value;
+    // 设置展示
+    const thinkingDetail = document.querySelector(identifier);
 
-  if (isExpanded.value) {
-    thinkingDetail.style.height = 'auto';
-    const { height } = thinkingDetail.getBoundingClientRect();
-    thinkingDetail.style.height = '0';
-    thinkingDetail.getBoundingClientRect();
-    thinkingDetail.style.padding = '12px 10px';
-    if (isThinking.value) {
+    if (isExpanded.value) {
       thinkingDetail.style.height = 'auto';
+      const { height } = thinkingDetail.getBoundingClientRect();
+      thinkingDetail.style.height = '0';
+      thinkingDetail.getBoundingClientRect();
+      thinkingDetail.style.padding = '12px 10px';
+      if (isThinking.value) {
+        thinkingDetail.style.height = 'auto';
+      } else {
+        thinkingDetail.style.height = (height + 24) + 'px';
+      }
     } else {
-      thinkingDetail.style.height = (height + 24) + 'px';
+      thinkingDetail.getBoundingClientRect();
+      thinkingDetail.style.height = '0';
+      thinkingDetail.style.padding = '0 10px';
     }
-  } else {
-    thinkingDetail.getBoundingClientRect();
-    thinkingDetail.style.height = '0';
-    thinkingDetail.style.padding = '0 10px';
   }
 }
 
@@ -85,7 +87,7 @@ const parsedContent = computed(() => {
   try {
     const cleaned = props.content.replace('<think>', '')
     const splitIndex = cleaned.indexOf('</think>')
-    console.log(`cleaned = ${cleaned},splitIndex = ${splitIndex}`)
+    // console.log(`cleaned = ${cleaned},splitIndex = ${splitIndex}`)
 
     if (splitIndex === -1) {
       isThinking.value = true
@@ -101,7 +103,7 @@ const parsedContent = computed(() => {
   } catch (e) {
     console.error('解析错误:', e)
   }
-  console.log(result.thinking)
+  // console.log(result.thinking)
   return result
 })
 
