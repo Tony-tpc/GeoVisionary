@@ -29,6 +29,7 @@
       <div class="tooltips">
         <div class="zoom-tooltip" :ref="(el) => tooltips.zoom = el">{{ data.changeArea ? '缩小输出框' : '放大输出框' }}</div>
         <div class="refresh-tooltip" :ref="(el) => tooltips.refresh = el">重置输出框</div>
+        <div class="convenient-tooltip" :ref="(el) => tooltips.convenient = el">{{ isActive ? "禁用标签自动选择" : "启用标签自动选择" }}</div>
       </div>
       <!--   输入和输出   -->
       <div class="LLM-input-output">
@@ -84,7 +85,7 @@
           />
         </div>
       </div>
-      <div class="summary-output" ref="summaryRef">你好呀，我是小春<br>单击我即可与我对话哟！</div>
+      <div class="summary-output" ref="summaryRef">你好呀，我是小春。<br>单击我即可与我对话哟！<br>（再次单击即可隐藏内容）</div>
     </div>
   </section>
   <!--  首页背景图及标题 -->
@@ -106,7 +107,11 @@
   <section>
     <div class="container section2" id="section2">
       <div class="switch-words">便捷模式</div>
-      <div class="switch-mode-container wrapper"><SwitchButton v-model="isActive"/></div>
+      <div class="switch-mode-container wrapper">
+        <SwitchButton v-model="isActive"
+                      @mouseenter="() => showTooltip('convenient')"
+                      @mouseleave="() => hideTooltip('convenient')"/>
+      </div>
       <div id="graph-container" style="width: 100%; height: 90%; border: 1px solid #ddd;position: absolute;top: 10%;"></div>
     </div>
   </section>
@@ -251,10 +256,8 @@ const speaking = (audio) => {
     const volume = dataArray.reduce((a, b) => a + b) / dataArray.length;
     const mouthOpen = Math.min(1, volume / 50); // 根据实际情况调整分母
 
-    console.log("当前模型参数:", model?.value?.internalModel?.coreModel?.parameters);
-
     if (model?.value) {
-      model.value.internalModel.motionManager.update = () => {}; // 防止 Live2D 覆盖参数
+      model.value.internalModel.motionManager.expressionManager = null;
       model.value.internalModel.coreModel.setParameterValueById('ParamMouthOpenY', mouthOpen); // 设置口型参数
     }
 
@@ -285,7 +288,8 @@ const playAudioQueue = () => {
   audio.addEventListener('ended', () => {
     console.log("音频播放结束");
     if (model?.value) {
-      model.value.parameters['ParamMouthOpenY'] = 0; // 关闭嘴巴
+      model.value.internalModel.coreModel.setParameterValueById('ParamMouthOpenY', 0); // 关闭嘴巴
+      model.value.internalModel.motionManager.startMotion("Idle", Math.floor(Math.random() * 3));
     }
     if (audioQueue.value.length > 0) {
       playAudioQueue(); // 继续播放下一个音频
@@ -294,6 +298,28 @@ const playAudioQueue = () => {
 
   audio.play();
 };
+
+const playPromptAudio = (prompt) => {
+  const audioUrls = {
+    'cancel': new URL('@/assets/audios/prompt_audio_cancel.wav', import.meta.url).href,
+    'error': new URL('@/assets/audios/prompt_audio_error.wav', import.meta.url).href,
+    'greeting': new URL('@/assets/audios/prompt_audio_greeting.wav', import.meta.url).href,
+    'thinking': new URL('@/assets/audios/prompt_audio_thinking.wav', import.meta.url).href,
+  };
+  if (!audioUrls[prompt]) return;
+
+  const audio = new Audio(audioUrls[prompt]);
+
+  audio.addEventListener('ended', () => {
+    if (model?.value) {
+      model.value.internalModel.coreModel.setParameterValueById('ParamMouthOpenY', 0); // 关闭嘴巴
+      model.value.internalModel.motionManager.startMotion("Idle", 0); // 恢复 Idle
+    }
+  });
+
+  audio.play();
+  speaking(audio); // 确保 Live2D 口型同步
+}
 
 // 解析 base64 为 URL
 const base64ToAudioUrl = (base64) => {
@@ -311,6 +337,7 @@ const waitForThinking = async () => {
   let i = 0;
   const timeout = 500;
   isThinkingActive = true;  // 标记动画开始
+  playPromptAudio('thinking');
 
   while(!thinkingContent.value && isThinkingActive) {
     if (i % 4 === 0) {
@@ -373,54 +400,60 @@ const chatWithLLM = () => {
 
     // WebSocket 事件处理
     ws.onmessage = (event) => {
-      const chunk = JSON.parse(event.data);
-      if (chunk.type === 'text') {
-        if (chunk.content === '[DONE]') {
-          console.log("流式结束");
-          doneReceived = true;
+      try {
+        const chunk = JSON.parse(event.data);
+        if (chunk.type === 'text') {
+          if (chunk.content === '[DONE]') {
+            console.log("流式结束");
+            doneReceived = true;
+            streamingMessageRef.value.isStreaming = false;
+            checkAndCloseWebSocket(); // 检查是否可以关闭 WebSocket
+            return;
+          }
+          if (!doneReceived) {
+            streamingMessageRef.value.content += chunk.content;
+          }
+        }
+
+        if (chunk.type === 'error') {
+          streamingMessageRef.value.content += `\n[错误 : ${chunk.details}]`;
           streamingMessageRef.value.isStreaming = false;
-          checkAndCloseWebSocket(); // 检查是否可以关闭 WebSocket
-          return;
-        }
-        if (!doneReceived) {
-          streamingMessageRef.value.content += chunk.content;
-        }
-      }
-
-      if (chunk.type === 'error') {
-        streamingMessageRef.value.content += `\n[错误 : ${chunk.details}]`;
-        streamingMessageRef.value.isStreaming = false;
-        throw new Error(chunk.details);
-      }
-
-      if (chunk.type === 'summary') {
-        console.log("概括内容:", chunk.content);
-
-        if (!thinkingContent.value) {
-          thinkingContent.value = chunk.content;
-          typeEffect();  // 调用异步打字机效果
+          throw new Error(chunk.details);
         }
 
-        if (chunk.audio) {
-          checkAndCloseWebSocket();
-          audioQueue.value.push(base64ToAudioUrl(chunk.audio));
-          playAudioQueue();
-        }
-      }
+        if (chunk.type === 'summary') {
+          console.log("概括内容:", chunk.content);
 
-      if (chunk.type === 'audio') {
-        console.log("主音频已忽略（仅概括生成音频）");
+          if (!thinkingContent.value) {
+            thinkingContent.value = chunk.content;
+            typeEffect();  // 调用异步打字机效果
+          }
+
+          if (chunk.audio) {
+            checkAndCloseWebSocket();
+            audioQueue.value.push(base64ToAudioUrl(chunk.audio));
+            playAudioQueue();
+          }
+        }
+
+        if (chunk.type === 'audio') {
+          console.log("主音频已忽略（仅概括生成音频）");
+        }
+      } catch (error) {
+        console.error("WebSocket 消息处理错误:", error);
+
+        // 触发自定义错误事件
+        ws.dispatchEvent(new Event('error'));
       }
     };
 
     ws.onerror = (error) => {
       // 将错误输出到内容中
       console.error('WebSocket 错误:', error);
-      streamingMessageRef.value.error = true;
-      streamingMessageRef.value.content += '\n[连接错误]';
       streamingMessageRef.value.isStreaming = false;
       isThinkingActive = false;  // 停止动画
       summaryRef.value.innerHTML = '啊呀！好像发生错误了呢，再试一次吧';
+      playPromptAudio('error');
       ws.close();
     };
 
@@ -442,6 +475,7 @@ const chatWithLLM = () => {
         streamingMessageRef.value.content += '\n[用户终止]';
         isThinkingActive = false;  // 停止动画
         summaryRef.value.innerHTML = '是不是打错字啦？没关系的，重新输入一遍吧';
+        playPromptAudio('cancel');
         ws.close();
         cleanup();
       }
@@ -621,6 +655,10 @@ onMounted(() => {
       .to('.image2',{opacity:0,scale:0.75,duration:3,ease:'none'})
       .to('.image3',{opacity:1,scale:1,duration:3,ease:'none'})
       .to('.image3',{opacity:0,scale:0.75,duration:3,ease:'none'})
+
+  setTimeout(() => {
+    playPromptAudio('greeting');
+  },2000)
 
   // 拖动动画
   Draggable.create(".outputArea",{
@@ -1006,7 +1044,7 @@ watch(() => data.displayEverything, () => {
 }
 
 /* 悬停提示文字 */
-.refresh-tooltip,.zoom-tooltip {
+.refresh-tooltip,.zoom-tooltip,.convenient-tooltip {
   position: fixed;
   background: rgba(0,0,0,0.8);
   color: white;
@@ -1022,6 +1060,10 @@ watch(() => data.displayEverything, () => {
 }
 .zoom-tooltip {
   bottom: 28%;
+}
+.convenient-tooltip {
+  top: 10%;
+  right: 2.5%;
 }
 
 /* Live2D */

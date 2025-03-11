@@ -64,6 +64,14 @@
           "File": "motion/haru_g_m05.motion3.json",
           "Sound": "../shizuku/sounds/flickHead_01.mp3"
         }
+      ],
+      "Speaking": [
+        {
+          "File": "motion/haru_g_m07.motion3.json"
+        },
+        {
+          "File": "motion/haru_g_m15.motion3.json"
+        }
       ]
     }
   },

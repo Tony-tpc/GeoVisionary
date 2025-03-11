@@ -36,30 +36,11 @@
         </el-sub-menu>
       </el-menu>
     </el-col>
-    <div class="leaderboard">
-      <h3 class="leaderboard-title">🏆 排行榜</h3>
-      <table class="leaderboard-table">
-        <thead>
-          <tr>
-            <th>排名</th>
-            <th>用户名</th>
-            <th>答对题数</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="item in tableData">
-            <td>{{ item.rate }}</td>
-            <td>{{ item.username }}</td>
-            <td>{{ item.correctProblems }}</td>
-          </tr>
-        </tbody>
-      </table>
+    <div>
+      <LeaderBoard />
     </div>
   </div>
-  <div class="container">
-    <InputBox input="333333"></InputBox>
-    <InputBox input="444444"></InputBox>
-  </div>
+
 
 <!--  <div class="container">-->
 <!--    <BilibiliVideos :videos="data.videos"></BilibiliVideos>-->
@@ -141,43 +122,7 @@ const data = reactive({
   // ],
 })
 
-const tableData = [
-  {
-    rate:1,
-    username: 'admin',
-    correctProblems: '9',
-  },
-  {
-    rate:2,
-    username: 'admin3',
-    correctProblems: '9',
-  },
-  {
-    rate:3,
-    username: 'admin5',
-    correctProblems: '9',
-  },
-  {
-    rate:4,
-    username: 'admin2',
-    correctProblems: '8',
-  },
-  {
-    rate:5,
-    username: 'admin7',
-    correctProblems: '7',
-  },
-  {
-    rate:6,
-    username: 'admin6',
-    correctProblems: '6',
-  },
-  {
-    rate:7,
-    username: 'admin1',
-    correctProblems: '5',
-  },
-]
+
 
 // function formatTimestamp(timestamp) {
 //   const date = new Date(timestamp * 1000); // 转换为毫秒
@@ -660,32 +605,7 @@ onBeforeUnmount( () => {
   margin-right: 6px;
 }
 
-/* 排行榜 */
-.leaderboard {
-  position: absolute;
-  top: 20%;
-  right: 20%;
-  width: 300px;
-  padding: 20px;
-  background: rgba(0, 0, 0, 0.3); /* 半透明黑板质感 */
-  border-radius: 10px;
-  box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.6);
-}
 
-.leaderboard-title {
-  font-size: 28px;
-  font-weight: bold;
-  text-align: center;
-  color: #fff;
-  font-family: cursive;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-}
-
-.leaderboard-table {
-  width: 100%;
-  background-color: transparent !important;
-  overflow-x: hidden;
-}
 
 table th {
   text-align: left;
