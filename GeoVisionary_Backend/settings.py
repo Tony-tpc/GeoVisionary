@@ -90,6 +90,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = "GeoVisionary_Backend.wsgi.application"
+# 异步处理
 ASGI_APPLICATION = "GeoVisionary_Backend.asgi.application"
 
 CHANNEL_LAYERS = {
@@ -110,23 +111,34 @@ CHANNEL_LAYERS = {
 USE_X_FORWARDED_HOST = True
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
-# Database
-# https://docs.djangoproject.com/en/5.1/ref/settings/#databases
-
+# 数据库名称以及相关账户
 load_dotenv()
 USER = os.getenv("MYSQL_USER")
 PASSWORD = os.getenv("MYSQL_PASSWORD")
 HOST = os.getenv("MYSQL_HOST")
 PORT = int(os.getenv("MYSQL_PORT"))
+
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.mysql",
-        "NAME":"GeoVisionary",# 数据库名称以及相关账户
+        "NAME":"GeoVisionary",
         "USER": USER,
         "PASSWORD": PASSWORD,
         "HOST": HOST,
         "PORT": PORT,
-    }
+    },
+    # 异步 MySQL 数据库
+    "async_db": {
+        "ENGINE": "django_async_orm.backends.mysql",
+        "NAME": "async_GeoVisionary",
+        "USER": USER,
+        "PASSWORD": PASSWORD,
+        "HOST": HOST,
+        "PORT": PORT,
+        "OPTIONS": {
+            "charset": "utf8mb4",
+        },
+    },
 }
 
 RUN_SERVER_PORT = 8040

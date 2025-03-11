@@ -66,6 +66,11 @@ class TTSAudioConsumer(AsyncWebsocketConsumer):
             await self.send(text_data=json.dumps(
                 {"type": "error","details": self.error if self.error else "发生未知错误"}))
 
+        if self.error:
+            await self.send(text_data=json.dumps(
+                {"type": "error", "details": self.error}
+            ))
+
     async def stream_and_send(self, config):
         async for content_chunk in self.stream_llm_response(config):
             await self.send(text_data=json.dumps({"type": "text", "content": content_chunk}))
@@ -219,12 +224,12 @@ class TTSAudioConsumer(AsyncWebsocketConsumer):
 
         except asyncio.TimeoutError:
             print("TTS 请求超时（超过 120 秒未响应）")
-            self.error = "TTS 请求超时"
+            self.error = "语音生成请求超时"
             return ""
 
         except Exception as e:
             print(f"TTS请求失败: {e}")
-            self.error = str(e)
+            self.error = "语音生成请求失败"
             return ""
 
     async def process_and_send(self, content):
