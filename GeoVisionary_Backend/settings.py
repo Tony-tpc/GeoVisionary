@@ -38,7 +38,6 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     'users.apps.UsersConfig',
     'proxy.apps.ProxyConfig',
-    'api.apps.ApiConfig',
 ]
 
 MIDDLEWARE = [
@@ -122,15 +121,6 @@ DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.mysql",
         "NAME":"GeoVisionary",
-        "USER": USER,
-        "PASSWORD": PASSWORD,
-        "HOST": HOST,
-        "PORT": PORT,
-    },
-    # 异步 MySQL 数据库
-    "async_db": {
-        "ENGINE": "django_async_orm.backends.mysql",
-        "NAME": "async_GeoVisionary",
         "USER": USER,
         "PASSWORD": PASSWORD,
         "HOST": HOST,

@@ -11,11 +11,17 @@ from dotenv import load_dotenv
 
 from proxy.websocket_client import preprocess_text, STOP_PUNCTUATIONS
 
+## ChatConsumer 依赖
+from users.models import FrontendUser, UserConversation
+import uuid
+from asgiref.sync import sync_to_async
+
 load_dotenv()
 DS_MODEL = os.environ.get("DS_MODEL")
 V3_MODEL = os.environ.get("V3_MODEL")
 DS_KEY = os.environ.get("DS_KEY")
 DS_KEY2 = os.environ.get("DS_KEY2")
+TXDT_Key = os.environ.get("TXDT_Key")
 
 class TTSAudioConsumer(AsyncWebsocketConsumer):
     def __init__(self, *args, **kwargs):
@@ -261,3 +267,207 @@ class TTSAudioConsumer(AsyncWebsocketConsumer):
 
         # 缓存剩余片段（句子未结束的部分）
         self.queue = [parts[-1]] if parts[-1] else []
+
+prompt = r"""
+请按照以下格式回答：
+
+1. **地理位置**：
+   - 经纬度：{纬度}, {经度}
+   - 所属国家/地区：{国家/地区}
+   - 所属省份/州：{省份/州}
+   - 所属城市：{城市}
+
+2. **地理信息**：
+   - 地形：{地形类型}
+   - 气候：{气候类型}
+   - 自然资源：{自然资源}
+
+3. **人文特点**：
+   - 人口：{人口数量}
+   - 语言：{主要语言}
+   - 文化特色：{文化特色}
+   - 著名景点：{著名景点}
+
+4. **其他信息**：
+   - 历史背景：{历史背景}
+   - 经济发展：{经济发展}
+"""
+
+
+def sendTX(lat, lng):
+    try:
+        address = (
+            requests.get(
+                f"https://apis.map.qq.com/ws/geocoder/v1?key={TXDT_Key}&location={lat},{lng}"
+            )
+            .json()
+            .get("result", {})
+            .get("address_component", {})
+        )
+
+        # 黑名单
+        components = [
+            ("nation", ("", "undefined", "Ocean")),
+            ("province", ("", "undefined")),
+            ("city", ("", "undefined")),
+        ]
+
+        return (
+            "  ".join(
+                f"{key}: {address.get(key, '')}"
+                for key, excludes in components
+                if address.get(key, "") not in excludes
+            )
+            or None
+        )
+        # 如果全部字段无效返回None
+
+    except (requests.RequestException, KeyError, json.JSONDecodeError) as e:
+        print(f"API请求失败: {e}")
+        return None
+
+
+class ChatConsumer(AsyncWebsocketConsumer):
+    async def connect(self):
+        await self.accept()
+        self.user = None
+        self.full_content = {"content": "", "reasoning": ""}
+        self.msg = ""
+        self.isNewchat = True
+
+    async def receive(self, text_data):
+        try:
+            data = json.loads(text_data)
+            user_id = data.get("user_id")
+            message = data.get("message")
+            self.isNewchat = data.get("isNewChat")
+            if user_id:
+                self.user = await sync_to_async(FrontendUser.objects.get)(
+                    user_id=user_id
+                )
+            if type(message) == dict:
+                await self.handle_message(message)
+            else:
+                await self.send_error("Invalid message format")
+
+        except json.JSONDecodeError:
+            await self.send_error("Invalid JSON format")
+        except FrontendUser.DoesNotExist:
+            await self.send_error("User not found")
+        except Exception as e:
+            await self.send_error(str(e))
+
+    async def handle_message(self, message):
+        msg_type = message.get("type")
+
+        if msg_type == "latlng":
+            region = await sync_to_async(sendTX)(message["lat"], message["lng"])
+            if region:
+                self.msg = f"""{prompt}
+            现在，请告诉我{region}位置的地理信息和人文特点：
+            纬度 {message['lat']}，经度 {message['lng']}"""
+            else:
+                self.msg = f"""{prompt}
+            现在，请告诉我位置的地理信息和人文特点：
+            纬度 {message['lat']}，经度 {message['lng']}"""
+        elif msg_type == "text":
+            self.msg = message.get("text")
+        await self.process_ai_request()
+
+    async def process_ai_request(self):
+        headers = {
+            "Authorization": f"Bearer {DS_KEY}",
+            "Content-Type": "application/json",
+        }
+        payload = {
+            "model": DS_MODEL,
+            "messages": [{"role": "user", "content": self.msg}],
+            "stream": True,
+            "max_tokens": 4096,
+            "temperature": 0.7,
+            "top_p": 0.7,
+        }
+
+        try:
+            async with httpx.AsyncClient(timeout=30.0) as client:
+
+                async with client.stream(
+                    "POST",
+                    "https://api.siliconflow.cn/v1/chat/completions",
+                    headers=headers,
+                    json=payload,
+                ) as response:
+                    print(response)
+                    if response.status_code != 200:
+                        raise httpx.HTTPError(f"状态码异常: {response.status_code}")
+
+                    async for chunk in response.aiter_lines():
+                        if chunk.strip() == "data: [DONE]":
+                            break
+                        print(chunk)
+                        if chunk.startswith("data:"):
+                            try:
+                                data = json.loads(chunk[5:].strip())
+                                delta = data.get("choices", [{}])[0].get("delta", {})
+                                print(delta)
+                                # 处理推理链
+
+                                self.full_content["content"] += (
+                                    delta.get("content") or ""
+                                )
+
+                                self.full_content["reasoning"] += (
+                                    delta.get("reasoning_content") or ""
+                                )
+
+                                await self.send(
+                                    text_data=json.dumps(
+                                        {
+                                            "content": (delta.get("content") or ""),
+                                            "reasoning": (
+                                                delta.get("reasoning_content") or ""
+                                            ),
+                                            "completed": False,
+                                        }
+                                    )
+                                )
+
+                            except Exception as e:
+                                print("解析出错:", e)
+
+                    # 发送完成信号并保存
+                    await self.send(text_data=json.dumps({"completed": True}))
+                    await self.save_conversation()
+                    return
+
+        except httpx.TimeoutException:
+            self.error = "Request Timeout"
+        except httpx.HTTPError as e:
+            self.error = f"HTTP Error: {e}"
+        except Exception as e:
+            self.error = f"Unexpected Error: {e}"
+
+    async def save_conversation(self):
+
+        if self.user:
+            session_id = uuid.uuid4().hex
+
+            if self.isNewchat:
+                precursor_id = session_id
+            else:
+                precursor_id = uuid.uuid4().hex
+            await sync_to_async(UserConversation.objects.create)(
+                frontend_user=self.user,
+                session_id=session_id,
+                precursor_id=precursor_id,
+                user_message=self.msg,
+                llm_response=self.full_content["content"],
+            )
+
+    async def send_error(self, message):
+        await self.send(text_data=json.dumps({"error": message, "completed": True}))
+        await self.close()
+
+    async def disconnect(self, close_code):
+        if hasattr(self, "user") and self.user:
+            await self.save_conversation()

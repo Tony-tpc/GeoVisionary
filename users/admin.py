@@ -45,7 +45,7 @@ class FrontendUserAdmin(admin.ModelAdmin):
 
     def get_remarks(self,obj:FrontendUser):
         return obj.remarks
-    get_remarks.short_description = '备注'
+    get_remarks.short_description = '个人签名'
     get_remarks.admin_order_field = 'remarks'
 
     def get_correct_problems(self,obj:FrontendUser):
@@ -239,7 +239,7 @@ admin.site.register(UserHistory, UserHistoryAdmin)
 
 class UserConversationAdmin(admin.ModelAdmin):
     # 指定展示内容
-    list_display = ['get_frontend_user','get_session_id','get_timestamp','get_user_message','get_llm_response']
+    list_display = ['get_frontend_user','get_precursor_id','get_session_id','get_timestamp','get_user_message','get_llm_response']
 
     # 指定一页显示多少条数据
     list_per_page = 10
@@ -252,6 +252,11 @@ class UserConversationAdmin(admin.ModelAdmin):
         return obj.frontend_user
     get_frontend_user.short_description = '用户'
     get_frontend_user.admin_order_field = 'frontend_user'
+
+    def get_precursor_id(self, obj: UserConversation):
+        return obj.precursor_id
+    get_precursor_id.short_description = '前驱ID'
+    get_precursor_id.admin_order_field = 'precursor_id'
 
     def get_session_id(self, obj: UserConversation):
         return obj.session_id

@@ -1,4 +1,5 @@
 import jwt
+from django.http import JsonResponse
 from rest_framework import status
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response  # 使用 DRF 的 Response
@@ -135,3 +136,14 @@ def auto_login(request):
         return Response({"error": "Token 无效"}, status=status.HTTP_401_UNAUTHORIZED)
     except FrontendUser.DoesNotExist:
         return Response({"error": "用户不存在"}, status=status.HTTP_404_NOT_FOUND)
+
+@api_view(["GET"])
+def leaderboard_inquiry(request):
+    user_list = FrontendUser.objects.all()
+    response_dict = {}
+    for obj in user_list:
+        response_dict[obj.username] = {
+            'correct_problems': obj.correct_problems,
+            'avatar': request.build_absolute_uri(obj.avatar.url) if obj.avatar else None  # 生成完整URL
+        }
+    return JsonResponse({"user_object": response_dict},status=status.HTTP_200_OK)

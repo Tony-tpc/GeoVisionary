@@ -107,6 +107,7 @@ class UserHistory(models.Model):
 # 用户对话记录表
 class UserConversation(models.Model):
     frontend_user = models.ForeignKey(FrontendUser, on_delete=models.CASCADE)  # 用户
+    precursor_id = models.CharField(max_length=100, unique=True, blank=True,null=True )  # 前向会话ID
     session_id = models.CharField(max_length=100, unique=True)  # 独立会话ID
     timestamp = models.DateTimeField(auto_now_add=True)  # 记录时间
     user_message = models.TextField()  # 用户输入
