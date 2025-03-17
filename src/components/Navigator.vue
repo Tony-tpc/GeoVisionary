@@ -139,11 +139,12 @@ let ticking = false;
 
 // 更换主题
 const updateTheme = throttle(() => {
+  const noNeedForDarkTheme = data.activeIndex === '/navigator/landform' || data.activeIndex === '/navigator/moon-phase' || data.activeIndex === '/navigator/galaxy' || data.activeIndex === '/navigator/insight-lab';
   // 之后可根据需要改变主题切换逻辑
   if (data.activeIndex === '/navigator/geo-graph') {
     data.isDarkMode = true;
     data.logo = darkLogo;
-  } else if (data.activeIndex === '/navigator/landform' || data.activeIndex === '/navigator/moon-phase' || data.activeIndex === '/navigator/galaxy') {
+  } else if ( noNeedForDarkTheme ) {
     data.isDarkMode = false;
     data.logo = lightLogo;
   } else {

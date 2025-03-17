@@ -21,78 +21,97 @@
   <!--  测试 + 解析 -->
   <section>
     <div class="container section2" id="section2">
-      <el-col :span="6" class="menu-column">
-        <h2>试题分类</h2>
-        <el-menu
-            :unique-opened="true"
-        >
-          <el-sub-menu index="1">
-            <template #title>
-              <el-icon><Calendar /></el-icon>
-              <span>年份</span>
-            </template>
-            <el-menu-item index="1-1">2024</el-menu-item>
-            <el-menu-item index="1-2">2023</el-menu-item>
-            <el-menu-item index="1-3">2022</el-menu-item>
-            <el-menu-item index="1-4">2021</el-menu-item>
-          </el-sub-menu>
-          <el-sub-menu index="2">
-            <template #title>
-              <el-icon><Aim /></el-icon>
-              <span>难易程度</span>
-            </template>
-            <el-menu-item index="2-1">困难</el-menu-item>
-            <el-menu-item index="2-2">中等</el-menu-item>
-            <el-menu-item index="2-3">简单</el-menu-item>
-          </el-sub-menu>
-          <el-sub-menu index="3">
-            <template #title>
-              <el-icon><Document /></el-icon>
-              <span>来源</span>
-            </template>
-            <el-menu-item index="3-1">新课标 I 卷</el-menu-item>
-            <el-menu-item index="3-2">新课标 II 卷</el-menu-item>
-            <el-menu-item index="3-3">全国甲卷</el-menu-item>
-            <el-menu-item index="3-4">自主命题</el-menu-item>
-          </el-sub-menu>
-        </el-menu>
-      </el-col>
-      <!--   排行榜   -->
-      <div class="leaderboard">
-        <h3 class="leaderboard-title">🏆 排行榜</h3>
-        <ul class="leaderboard-list">
-          <li class="leaderboard-item first">🥇 张三 - 98分</li>
-          <li class="leaderboard-item second">🥈 李四 - 95分</li>
-          <li class="leaderboard-item third">🥉 王五 - 92分</li>
-          <li class="leaderboard-item">赵六 - 88分</li>
-          <li class="leaderboard-item">孙七 - 85分</li>
-        </ul>
+      <!--  侧边导航栏  -->
+      <div @mouseenter="handleEnterNav"
+           @mouseleave="handleLeaveNav"
+      >
+        <SideNavigationBar
+            @menu-select="fetchQuestions"
+        />
+      </div>
+
+      <!-- 中间内容部分 -->
+      <div class="content">
+        <div class="intro">
+          <h2 class="intro-title">📍 探知问学 - 挑战你的地理思维！</h2>
+
+          <p class="intro-text">
+            🧭 <strong>地理学，不只是记忆，更是探索！</strong>
+            <br>🌏 在这里，我们提供精选地理题目，涵盖 <strong>高考真题、区域地理、综合分析</strong> 等不同类别，助你提升地理思维。
+          </p>
+
+          <div class="intro-section">
+            <h3>📖 如何使用？</h3>
+            <ul>
+              <li>🔹 在左侧导航栏选择感兴趣的 <strong>题目分类</strong>，系统将自动加载相关试题。</li>
+              <li>🔹 右侧 <strong>排行榜</strong> 展示了做对题目最多的用户，快来挑战他们吧！</li>
+              <li>🔹 选择题目后，认真思考，作答提交，系统将自动批改，并提供详细解析。</li>
+            </ul>
+          </div>
+
+          <p class="intro-highlight">🚀 <strong>挑战自我，提升地理素养！</strong></p>
+          <p class="intro-call-to-action">立即选择一个题目类别，开启你的地理探索之旅吧！🔍🌎</p>
+        </div>
+      </div>
+
+      <!--  试题组件  -->
+      <div class="display-question">
+        <QuestionsDisplay :isLoading="isLoading"/>
+      </div>
+
+      <!--  排行榜  -->
+      <div class="leaderboard-component">
+        <LeaderBoard />
       </div>
     </div>
   </section>
 </template>
 
 <script setup>
-import { onMounted } from "vue";
+import { onMounted,ref } from "vue";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { gsap } from "gsap";
 gsap.registerPlugin(ScrollTrigger);
 
-onMounted(() => {
-  // 第一屏
-  (function () {
-    // 展示模型动画
-    ScrollTrigger.create({
-      trigger:'.section1',
-      start:'top+=100 top',
-      end:'+=300',
-      scrub:true,
-      animation:
-          gsap.timeline()
-              .from('.section2',{opacity:0})
-    });
-  })();
+const selectedCategory = ref(null); // 选中类别
+const isLoading = ref(false); // 控制加载
 
+// 处理鼠标移入导航栏
+const handleEnterNav = () => {
+  // 介绍文字收缩
+  if (!selectedCategory.value) {
+    gsap.to('.content',{width: '35%',left: '15%'})
+  }
+}
+
+// 处理鼠标移出导航栏
+const handleLeaveNav = () => {
+  // 介绍文字扩张
+  if (!selectedCategory.value) {
+    gsap.to('.content',{width: '47%',left: '7%'})
+  }
+}
+
+// 选中菜单栏后，向后端发送请求
+const fetchQuestions = (selectedItem) => {
+  isLoading.value = true;
+  // 隐藏介绍文字和排行榜，并展示题目（初始默认加载）
+  gsap.timeline()
+      .to(['.content','.leaderboard-component'], {opacity: 0})
+      .set(['.content','.leaderboard-component'], {display: 'none'})
+      .set(['.display-question'],{display: 'block'})
+      .to('.display-question',{opacity: 1});
+
+  // 向后端发送请求
+  selectedCategory.value = selectedItem;
+  console.log("请求后端的数据:", selectedCategory.value);
+  // 根据选中的对象请求后端
+  setTimeout(() => {
+    isLoading.value = false;
+  },3000)
+};
+
+onMounted(() => {
   // 视差滚动
     gsap.fromTo('.background-photo',
         { y: `-${window.innerHeight / 2}px` }, // 起始位置
@@ -177,130 +196,86 @@ onMounted(() => {
   top: 100vh;
   left: 0;
   height: 100vh;
+  background: url(../src/assets/insight_bg.jpg) center / cover;
 }
 
-/* 整个菜单栏外框 */
-.menu-column {
+/* 中间内容区域 */
+.content {
   position: absolute;
-  top: 8%;
-  left: 0;
-  height: 90%;
-  width: 250px;
-  background: var(--bg-color); /* 适配你的主题色 */
+  top: 15%;
+  left: 7%;
+  flex: 1;
+  padding: 40px;
+  text-align: center;
+  width: 47%;
+}
+
+/* 介绍部分 */
+.intro-title {
+  font-size: 28px;
+  font-weight: bold;
+  color: #ffffff; /* 纯白色，确保对比度 */
+  margin-bottom: 20px;
+}
+
+.intro-text {
+  font-size: 18px;
+  line-height: 1.8;
+  color: #e6f7ff; /* 柔和的浅蓝白色 */
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+/* 介绍的每个模块 */
+.intro-section {
+  background: rgba(0, 51, 102, 0.2); /* 深蓝色低透明度 */
   padding: 20px;
   border-radius: 12px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); /* 轻微阴影，增加立体感 */
-  transition: all 0.3s ease-in-out;
+  margin-top: 20px;
+  text-align: left;
+  max-width: 700px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
-/* 试题分类标题 */
-.menu-column h2 {
-  font-size: 18px;
-  font-weight: bold;
-  color: var(--text-color);
-  text-align: center;
+.intro-section h3 {
+  font-size: 20px;
+  color: #ffdd55; /* 柔和暖黄色 */
   margin-bottom: 10px;
 }
 
-/* 侧边栏菜单 */
-.el-menu {
-  background: transparent !important; /* 让菜单栏背景透明 */
-  border: none;
-}
-
-/* 每个子菜单（如年份 / 难度 / 来源） */
-.el-sub-menu__title {
-  font-size: 16px;
-  font-weight: bold;
-  color: var(--text-color);
-  padding: 12px;
-  transition: all 0.3s ease-in-out;
-}
-
-/* 子菜单悬停效果 */
-.el-sub-menu__title:hover {
-  background: rgba(0, 0, 0, 0.05) !important;
-  border-radius: 8px;
-}
-
-/* 菜单项 */
-.el-menu-item {
-  font-size: 14px;
-  color: var(--text-color);
-  padding: 10px 16px;
-  transition: all 0.3s ease-in-out;
-}
-
-/* 子菜单项悬停 */
-.el-menu-item:hover {
-  background: rgba(0, 0, 0, 0.1) !important;
-  border-radius: 8px;
-}
-
-/* 选中状态 */
-.el-menu-item.is-active {
-  background: #40a2f6 !important; /* 适配你的主题色 */
-  color: white !important;
-  border-radius: 8px;
-  font-weight: bold;
-}
-
-/* 图标 */
-.el-icon {
-  color: #0d0f1a;
-  margin-right: 6px;
-}
-
-
-/* 排行榜 */
-.leaderboard {
-  position: absolute;
-  top: 20%;
-  right: 20%;
-  width: 300px;
-  padding: 20px;
-  background: rgba(0, 0, 0, 0.3); /* 半透明黑板质感 */
-  border-radius: 10px;
-  box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.6);
-}
-
-.leaderboard-title {
-  font-size: 28px;
-  font-weight: bold;
-  text-align: center;
-  color: #fff;
-  font-family: "Chalkduster", "Comic Sans MS", cursive;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-}
-
-.leaderboard-list {
+.intro-section ul {
   list-style: none;
   padding: 0;
-  margin: 10px 0 0;
 }
 
-.leaderboard-item {
+.intro-section li {
+  font-size: 16px;
+  line-height: 1.6;
+  padding-left: 20px;
+  text-indent: -15px;
+  color: #e6f7ff; /* 保持一致的浅蓝白色，增强可读性 */
+}
+
+/* 结尾高亮 */
+.intro-highlight {
   font-size: 20px;
-  font-family: "Chalkduster", "Comic Sans MS", cursive;
-  color: #fff;
-  padding: 10px;
-  border-bottom: 1px dashed rgba(255, 255, 255, 0.5);
-  transition: transform 0.2s ease-in-out;
+  font-weight: bold;
+  color: #ff884d; /* 温暖橙色，突出强调 */
+  margin-top: 30px;
 }
 
-.leaderboard-item:hover {
-  transform: scale(1.05);
+/* 号召行动 */
+.intro-call-to-action {
+  font-size: 18px;
+  font-weight: bold;
+  color: #f94604; /* 明亮柔和黄色 */
+  margin-top: 20px;
 }
 
-/* 前三名颜色 */
-.first {
-  color: gold;
+/* 试题 */
+.display-question {
+  opacity: 0;
+  display: none;
 }
-.second {
-  color: silver;
-}
-.third {
-  color: #cd7f32;
-}
-
 </style>

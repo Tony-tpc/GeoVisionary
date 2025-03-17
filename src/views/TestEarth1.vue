@@ -1,44 +1,48 @@
 <template>
   <div class="container">
-    <el-col :span="6" class="menu-column">
-      <h2>试题分类</h2>
-      <el-menu
-          :unique-opened="true"
-      >
-        <el-sub-menu index="1">
-          <template #title>
-            <el-icon><Calendar /></el-icon>
-            <span>年份</span>
-          </template>
-          <el-menu-item index="1-1">2024</el-menu-item>
-          <el-menu-item index="1-2">2023</el-menu-item>
-          <el-menu-item index="1-3">2022</el-menu-item>
-          <el-menu-item index="1-4">2021</el-menu-item>
-        </el-sub-menu>
-        <el-sub-menu index="2">
-          <template #title>
-            <el-icon><Aim /></el-icon>
-            <span>难易程度</span>
-          </template>
-          <el-menu-item index="2-1">困难</el-menu-item>
-          <el-menu-item index="2-2">中等</el-menu-item>
-          <el-menu-item index="2-3">简单</el-menu-item>
-        </el-sub-menu>
-        <el-sub-menu index="3">
-          <template #title>
-            <el-icon><Document /></el-icon>
-            <span>来源</span>
-          </template>
-          <el-menu-item index="3-1">新课标 I 卷</el-menu-item>
-          <el-menu-item index="3-2">新课标 II 卷</el-menu-item>
-          <el-menu-item index="3-3">全国甲卷</el-menu-item>
-          <el-menu-item index="3-4">自主命题</el-menu-item>
-        </el-sub-menu>
-      </el-menu>
-    </el-col>
-    <div>
-      <LeaderBoard />
-    </div>
+<!--    <el-col :span="6" class="menu-column">-->
+<!--      <h2>试题分类</h2>-->
+<!--      <el-menu-->
+<!--          :unique-opened="true"-->
+<!--      >-->
+<!--        <el-sub-menu index="1">-->
+<!--          <template #title>-->
+<!--            <el-icon><Calendar /></el-icon>-->
+<!--            <span>年份</span>-->
+<!--          </template>-->
+<!--          <el-menu-item index="1-1">2024</el-menu-item>-->
+<!--          <el-menu-item index="1-2">2023</el-menu-item>-->
+<!--          <el-menu-item index="1-3">2022</el-menu-item>-->
+<!--          <el-menu-item index="1-4">2021</el-menu-item>-->
+<!--        </el-sub-menu>-->
+<!--        <el-sub-menu index="2">-->
+<!--          <template #title>-->
+<!--            <el-icon><Aim /></el-icon>-->
+<!--            <span>难易程度</span>-->
+<!--          </template>-->
+<!--          <el-menu-item index="2-1">困难</el-menu-item>-->
+<!--          <el-menu-item index="2-2">中等</el-menu-item>-->
+<!--          <el-menu-item index="2-3">简单</el-menu-item>-->
+<!--        </el-sub-menu>-->
+<!--        <el-sub-menu index="3">-->
+<!--          <template #title>-->
+<!--            <el-icon><Document /></el-icon>-->
+<!--            <span>来源</span>-->
+<!--          </template>-->
+<!--          <el-menu-item index="3-1">新课标 I 卷</el-menu-item>-->
+<!--          <el-menu-item index="3-2">新课标 II 卷</el-menu-item>-->
+<!--          <el-menu-item index="3-3">全国甲卷</el-menu-item>-->
+<!--          <el-menu-item index="3-4">自主命题</el-menu-item>-->
+<!--        </el-sub-menu>-->
+<!--      </el-menu>-->
+<!--    </el-col>-->
+<!--    <div>-->
+<!--      <SideNavigationBar />-->
+<!--    </div>-->
+<!--    <div>-->
+<!--      <LeaderBoard />-->
+<!--    </div>-->
+<!--    <QuestionsDisplay />-->
   </div>
 
 
@@ -527,11 +531,12 @@ onBeforeUnmount( () => {
 </script>
 
 <style scoped>
+
 .container {
   position: relative;
   width: 100%;
   height: 100vh;
-  background-color: var(--bg-color);
+  background-color: #fd916a;
 }
 /* 整个菜单栏外框 */
 .menu-column {

@@ -45,9 +45,9 @@ canvas {
 }
 
 .card {
-    background-color: white;
+    background-color: #fffdf3;
     padding: 10px;
-    border-radius: 5px;
+    border-radius: 12px;
     box-shadow: 0 0 8px rgba(0,0,0,.12);
 }
 

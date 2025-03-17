@@ -54,7 +54,6 @@
             <span v-else>AI助手</span>
           </div>
           <!-- 思维链区域 -->
-          <!-- 修改后的推理链区域 -->
           <div class="reasoning-container" v-if="msg.reasoning">
             <div class="reasoning-header" @click="toggleReasoning(index)">
               <span class="toggle-icon">{{ msg.isReasoningExpanded ? '−' : '+' }}</span>
@@ -93,15 +92,29 @@
 </template>
 
 <script setup>
-import { ref, reactive, watch, nextTick } from 'vue'
+import { ref, reactive, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { marked } from 'marked'
 import hljs from 'highlight.js'
 import 'highlight.js/styles/github.css'
 import { Dome as DomeIcon } from "@icon-park/vue-next"
+import { gsap } from 'gsap'
+import { ScrollTrigger } from 'gsap/ScrollTrigger'
+import { userState, setUser } from '@/store/userStore'
+gsap.registerPlugin(ScrollTrigger)
+
+const props = defineProps({
+  worldContent: {
+    type: String,
+    required: true
+  }
+})
 // 配置后端地址
-const API_URL = 'http://127.0.0.1:8040/api/chat/'
+const WS_URL = 'ws://localhost:8040/ws/chat/'
 
 // 响应式数据
+const isConnecting = ref(false)
+const reconnectAttempts = ref(0)
+const MAX_RECONNECT_ATTEMPTS = 3
 const messages = reactive([])
 const inputText = ref('')
 const isLoading = ref(false)
@@ -111,7 +124,7 @@ const isHistoryOpen = ref(false)
 const chatHistory = ref(JSON.parse(localStorage.getItem('chatHistory')) || [])
 const coordinates = ref([])
 const updateFlag = ref(0)
-
+const isNewChat = ref(true)
 // Markdown 配置
 marked.setOptions({
   highlight: (code, lang) => {
@@ -122,11 +135,12 @@ marked.setOptions({
 
 // 消息发送逻辑
 const sendMessage = async (latitude = null, longitude = null) => {
+  const ws = new WebSocket(WS_URL)
+  var startcontent = false
   var head = ""
   var Requireregion = false
   var question = ""
   var Showquestion = ""
-
   if (latitude && longitude) // 存在经纬度
   {
     Requireregion = true
@@ -146,125 +160,111 @@ const sendMessage = async (latitude = null, longitude = null) => {
   }
   if (!question || isLoading.value) return
 
-  try {
-    isLoading.value = true
-    isStreaming.value = true
+  isLoading.value = true
+  isStreaming.value = true
 
 
-    // 添加用户消息
-    messages.push({
-      role: 'user',
-      displayContent: Showquestion, // 显示内容
-      actualContent: question // 实际发送内容
-    });
-    // 创建助理消息占位
-    const assistantMessage = { role: 'assistant', content: '', reasoning: '', isReasoningExpanded: true }
-    messages.push(assistantMessage)
-    scrollToBottom()
+  // 添加用户消息
+  messages.push({
+    role: 'user',
+    displayContent: Showquestion, // 显示内容
+    actualContent: question // 实际发送内容
+  });
+  // 创建助理消息占位
+  const assistantMessage = { role: 'assistant', content: '', reasoning: '', isReasoningExpanded: true }
+  messages.push(assistantMessage)
+  scrollToBottom()
 
-    // 发送请求
-    const response = await fetch(API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        message: question,
-        history: messages.slice(-5).map(m => ({
-          role: m.role,
-          content: m.actualContent || m.content
-        }))
-      })
-    })
 
-    // 处理流式响应
-    const reader = response.body.getReader()
-    const decoder = new TextDecoder('utf-8')
-    let buffer = ''
-    // 性能优化：批量更新
-    let updateQueue = []
-    let lastUpdate = Date.now()
+  ws.onopen = () => {
+    try {
+      if (JSON.parse(localStorage.getItem("isApiavailable"))) {
+        // 构造WebSocket消息
+        const payload = {
+          user_id: userState?.user?.user_id || null,
+          message: question,
+          isNewChat: isNewChat.value,
+        }
 
-    const flushQueue = () => {
-      if (updateQueue.length > 0) {
-        assistantMessage.content += updateQueue.join('')
-        updateQueue = []
-        updateFlag.value++ // 强制触发更新
-        scrollToBottom()
-      }
-    }
-    var startcontent = false
-    while (true) {
-      const { done, value } = await reader.read()
-      if (done) {
-        flushQueue()
-        break
-      }
-
-      buffer += decoder.decode(value, { stream: true })
-      // console.log("????",buffer);
-
-      // 分割处理多行数据
-      while (buffer.includes('\n')) {
-        const newlineIndex = buffer.indexOf('\n')
-        const line = buffer.slice(0, newlineIndex).trim()
-        buffer = buffer.slice(newlineIndex + 1)
-        console.log(buffer);
-
-        if (line) {
-          try {
-            const data = JSON.parse(line)
-            // 更新消息内容
-            if (data.content) {
-              if (!startcontent) {
-                assistantMessage.isReasoningExpanded = false;
-                startcontent = true
-              }
-              assistantMessage.content += data.content
-              updateFlag.value++ // 触发内容更新
-            }
-            if (data.reasoning) {
-              assistantMessage.reasoning += data.reasoning
-              updateFlag.value++ // 触发推理更新
-            }
-            // 处理坐标数据
-            // if (data.coordinates) {
-            //   coordinates.value = data.coordinates.map(c => ({
-            //     lat: parseFloat(c[0]),
-            //     lng: parseFloat(c[1])
-            //   }))
-            // }
-
-            // 实时滚动
-            scrollToBottom()
-            const shouldFlush =
-              Date.now() - lastUpdate > 50 ||
-              updateQueue.length >= 3 ||
-              /[。！？\n]/.test(data.content)
-
-            if (shouldFlush) {
-              flushQueue()
-              lastUpdate = Date.now()
-            }
-          } catch (e) {
-            console.error('JSON 解析错误:', e)
-          }
+        // 消息发送
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify(payload))
+          isNewChat.value = false
+        } else {
+          console.error('WebSocket is not open')
         }
       }
-    }
+      else {
+        isLoading.value = false
+        isStreaming.value = false
+        saveHistory()
+        ws.close();
+        messages.push({
+          role: 'system',
+          content: `请求错误: 未登录的用户`
+        })
+      }
+      console.log(userState.user);
 
-  } catch (error) {
-    console.error('请求失败:', error)
-    messages.push({
-      role: 'system',
-      content: `请求错误: ${error.message}`
-    })
-  } finally {
-    // 仅当是输入框提交时才清空
-    if (!latitude) inputText.value = ''
+      if (!userState.user) {
+        localStorage.setItem("isApiavailable", false);
+      }
+      isNewChat.value = false
+    } catch (error) {
+      console.error('请求失败:', error)
+      isLoading.value = false
+      isStreaming.value = false
+      saveHistory()
+      ws.close();
+      messages.push({
+        role: 'system',
+        content: `请求错误: ${error.message}`
+      })
+    } finally {
+      // 仅当是输入框提交时才清空
+      if (!latitude) inputText.value = ''
+
+      // extractCoordinates(assistantMessage.content)
+    }
+  }
+
+  ws.onmessage = (event) => {
+    const chunk = JSON.parse(event.data);
+    console.log(chunk);
+    if (chunk.content) {
+      if (!startcontent) {
+        assistantMessage.isReasoningExpanded = false;
+        startcontent = true
+      }
+      assistantMessage.content += chunk.content
+      updateFlag.value++ // 触发内容更新
+    }
+    if (chunk.reasoning) {
+      assistantMessage.reasoning += chunk.reasoning
+      updateFlag.value++ // 触发推理更新
+    }
+    if (chunk.completed) {
+      isLoading.value = false
+      isStreaming.value = false
+      saveHistory()
+      ws.close();
+      if (!userState.user) {
+        localStorage.setItem("isApiavailable", false);
+      }
+    }
+  }
+
+  ws.onerror = (error) => {
+    // 将错误输出到内容中
+    console.error('WebSocket 错误:', error);
     isLoading.value = false
     isStreaming.value = false
-    saveHistory()
-    // extractCoordinates(assistantMessage.content)
-  }
+    messages.push({
+      role: 'system',
+      content: `好像发生错误了呢，再试一次吧`
+    })
+    ws.close();
+  };
 }
 
 
@@ -324,7 +324,6 @@ const scrollToBottom = () => {
 const toggleHistory = () => {
   isHistoryOpen.value = !isHistoryOpen.value
 }
-
 
 // 暴露增强后的方法
 defineExpose({
@@ -626,7 +625,6 @@ button::before {
   }
 }
 
-/* 新增嵌入式欢迎样式 */
 .chat-messages {
   position: relative;
   display: flex;
@@ -640,7 +638,6 @@ button::before {
   align-items: center;
   justify-content: center;
   min-height: calc(100vh - 160px);
-  /* 根据实际布局调整 */
   padding: 20px;
 }
 

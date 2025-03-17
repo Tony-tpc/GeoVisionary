@@ -50,11 +50,11 @@
             <el-radio-group v-model="ruleFormReg.gender">
               <el-radio value="M">男</el-radio>
               <el-radio value="F">女</el-radio>
-              <el-radio value="O">其他</el-radio>
+              <el-radio value="O">保密</el-radio>
             </el-radio-group>
           </el-form-item>
-          <el-form-item label="备注" prop="desc">
-            <el-input v-model="ruleFormReg.desc"  type="textarea" :autosize="{ minRows:2 , maxRows:4 }" :maxlength="100" resize="none" show-word-limit placeholder="我们期待了解您希望在我们的平台上实现的目标。"/>
+          <el-form-item label="个人签名" prop="desc">
+            <el-input v-model="ruleFormReg.desc"  type="textarea" :autosize="{ minRows:2 , maxRows:4 }" :maxlength="100" resize="none" show-word-limit placeholder="彰显您的风格"/>
           </el-form-item>
           <el-form-item>
             <el-button type="primary" @click="submitFormReg(ruleFormRefReg)" :disabled="data.isDisabled">

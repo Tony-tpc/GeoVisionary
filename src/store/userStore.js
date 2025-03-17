@@ -35,6 +35,7 @@ const setUser = (response) => {
     localStorage.setItem("user", JSON.stringify(response.user));
     localStorage.setItem("access_token", response.access_token);
     localStorage.setItem("refresh_token", response.refresh_token);
+    localStorage.setItem("isApiavailable", true)
 };
 
 // 清除用户信息（退出登录）
@@ -45,6 +46,7 @@ const clearUser = () => {
     localStorage.removeItem("user");
     localStorage.removeItem("access_token");
     localStorage.removeItem("refresh_token");
+    localStorage.removeItem("isApiavailable");
 };
 
 // 刷新 Access Token
