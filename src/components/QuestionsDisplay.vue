@@ -160,8 +160,15 @@
 
     <!-- 分页 -->
     <div class="pagination">
-      <el-button @click="prevPage" :disabled="currentPage === 0">上一页</el-button>
-      <el-button @click="nextPage" :disabled="(currentPage + 1) * 10 >= questions.length">下一页</el-button>
+      <el-pagination
+          v-model:current-page="displayPage"
+          v-model:page-size="pageSize"
+          :size="'default'"
+          :background="true"
+          layout="prev, pager, next, jumper"
+          :total="total"
+          @current-change="handleCurrentChange"
+      />
     </div>
 
     <!-- 提示 -->
@@ -273,6 +280,85 @@ const props = defineProps({
             explanation: "结合所学知识，阅读图文材料可知，图中显示其整体功能分区明确，商业区位于老城区和住宅区之间，体现功能中心地位，同时向城市主干道方向发展，最终延伸到最外围的工业区，体现其轴向发展的布局思想，①正确;老城区主干道延伸串联各功能区后，老城区在工业区居住人员较远，没有体现职住平衡的思路，②错误;将各功能区串联后，可以促进新区的发展，平衡老城和新城共同发展，③正确;图中显示老城区地租较高，串联新合作区功能各功能区后，地租逐渐升高的是商业区，且商业区地租将高于老城区，并未体现地租递减的思路，④错误。"
           }
         ]
+      },
+      {
+        id: 11, text: "地球的公转周期是多少天？", type: "single",
+        options: { A: "365天", B: "366天", C: "360天" }, answer: ["A"],
+        explanation: "地球公转周期约为365.25天。"
+      },
+      {
+        id: 12, text: "太阳系的行星有哪些？", type: "multiple",
+        options: { A: "地球", B: "火星", C: "冥王星" }, answer: ["A", "B"],
+        explanation: "冥王星已被降级为矮行星。"
+      },
+      {
+        id: 13, text: "地球的公转周期是多少天？", type: "single",
+        options: { A: "365天", B: "366天", C: "360天" }, answer: ["A"],
+        explanation: "地球公转周期约为365.25天。"
+      },
+      {
+        id: 14, text: "太阳系的行星有哪些？", type: "multiple",
+        options: { A: "地球", B: "火星", C: "冥王星" }, answer: ["A", "B"],
+        explanation: "冥王星已被降级为矮行星。"
+      },
+      {
+        id: 15, text: "地球的公转周期是多少天？", type: "single",
+        options: { A: "365天", B: "366天", C: "360天" }, answer: ["A"],
+        explanation: "地球公转周期约为365.25天。"
+      },
+      {
+        id: 16, text: "太阳系的行星有哪些？", type: "multiple",
+        options: { A: "地球", B: "火星", C: "冥王星" }, answer: ["A", "B"],
+        explanation: "冥王星已被降级为矮行星。"
+      },
+      {
+        id: 17, text: "地球的公转周期是多少天？", type: "single",
+        options: { A: "365天", B: "366天", C: "360天" }, answer: ["A"],
+        explanation: "地球公转周期约为365.25天。"
+      },
+      {
+        id: 18, text: "太阳系的行星有哪些？", type: "multiple",
+        options: { A: "地球", B: "火星", C: "冥王星" }, answer: ["A", "B"],
+        explanation: "冥王星已被降级为矮行星。"
+      },
+      {
+        id: 19, text: "地球的公转周期是多少天？", type: "single",
+        options: { A: "365天", B: "366天", C: "360天" }, answer: ["A"],
+        explanation: "地球公转周期约为365.25天。"
+      },
+
+      // ❸ 大题（含多个小题）
+      {
+        id: 20, text: "苏州工业园区是中国和新加坡两国政府间的重要合作项目。图1示意苏州工业园区中的中新合作区1994-2000年实施的功能区布局规划。规划思路是通过基础设施建设，优先开发工业用地；当人口集聚到一定规模后，加大开发居住用地；当人口进一步集聚后，再重点开发商业用地。据此完成下面小题。",
+        image: '../src/assets/test/img.png',
+        sub_questions: [
+          {
+            id: "20-1",
+            text: "1. 中新合作区的工业区对商业区形成强力支撑的原因是工业区带动了（    ）\n"  +
+                "①人口集聚    ②服务业集聚    ③人才集聚    ④技术集聚",
+            type: "single",
+            options: { A: "①②", B: "②③", C: "③④", D: "①④" },
+            answer: ["A"],
+            explanation: "结合所学知识，阅读图文材料可知，中新合作区的工业区的建立，将吸引大量的人口集中到居住区，对商业区带来大量的人流量，①正确;同时工业区就业人数数量大，可以带动服务业的发展，促进服务业在商业区集中，②正确;人才的集聚和技术的集聚对商业区的影响起不到支撑作用，③和④错误。"
+          },
+          {
+            id: "20-2",
+            text: "2. 住宅区规划在商业区和工业区之间，主要有利于（    ）",
+            type: "single",
+            options: { A: "节约土地资源", B: "增加绿地面积", C: "组织内外交通", D: "完善市政设施" },
+            answer: ["C"],
+            explanation: "结合所学知识，阅读图文材料可知，住宅区规划在商业区和工业区之间，并不能节约土地资源，A错误;住宅区范围较大，位于两者之间，绿化带的范围大小主要看设计思想，于位置关系不大，B错误;图中显示城市主干道贯穿住宅区、商业区和工业区，而住宅区位于中间，主要是为了加强居民工作和休闲的交通，因此主要有利于组织内外交通，C正确;住宅区所处任何位置都可以完善市政设施，因此主要目的不是完善市政设施，D错误。"
+          },
+          {
+            id: "20-3",
+            text: "3. 苏州老城主干道向东延伸串联中新合作区各功能区，体现的布局思路是（    ）\n" +
+                "①轴向发展    ②职住平衡    ③均衡发展    ④地租递减",
+            type: "single",
+            options: { A: "①③", B: "②④", C: "②③", D: "①④" },
+            answer: ["A"],
+            explanation: "结合所学知识，阅读图文材料可知，图中显示其整体功能分区明确，商业区位于老城区和住宅区之间，体现功能中心地位，同时向城市主干道方向发展，最终延伸到最外围的工业区，体现其轴向发展的布局思想，①正确;老城区主干道延伸串联各功能区后，老城区在工业区居住人员较远，没有体现职住平衡的思路，②错误;将各功能区串联后，可以促进新区的发展，平衡老城和新城共同发展，③正确;图中显示老城区地租较高，串联新合作区功能各功能区后，地租逐渐升高的是商业区，且商业区地租将高于老城区，并未体现地租递减的思路，④错误。"
+          }
+        ]
       }
     ],
   },
@@ -282,15 +368,25 @@ const props = defineProps({
   }
 })
 
-// 题目对象
-const questions = ref(props.questions);
 
+const questions = ref(props.questions); // 题目对象
 const currentIndex = ref(0); // 题号
-const currentPage = ref(0); // 页码
+const currentPage = ref(0); // 页码十位
 const submitted = ref(false); // 是否提交
 const selectedOptions = ref({}); // 选中选项内容
 const userAnswers = ref({}) // 用户回答对象
 const dialogVisible = ref(false) // 是否显示对话框
+const total = ref(questions.value.length) // 总题数
+const pageSize = ref(10) // 每页题数
+
+// 显示的页码
+const displayPage = computed(() => currentPage.value + 1);
+
+// 处理页面切换
+const handleCurrentChange = (val) => {
+  currentPage.value = val - 1;
+  console.log(`current page: ${val}`)
+}
 
 // 当前问题对象
 const currentQuestion = computed(() => questions.value[currentIndex.value]);
@@ -945,10 +1041,15 @@ onMounted(() => {
   color: #D32F2F;
 }
 
+/* 分页组件 */
 .pagination {
   margin-top: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
+/* 题目未完成便提交的提示 */
 .unfinished-prompt {
   text-align: left;
 }

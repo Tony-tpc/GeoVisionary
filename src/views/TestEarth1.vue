@@ -43,6 +43,17 @@
 <!--      <LeaderBoard />-->
 <!--    </div>-->
 <!--    <QuestionsDisplay />-->
+<!--    <div class="pagination-block">-->
+<!--      <el-pagination-->
+<!--          v-model:current-page="currentPage"-->
+<!--          v-model:page-size="pageSize"-->
+<!--          :size="'default'"-->
+<!--          :background="true"-->
+<!--          layout="prev, pager, next, jumper"-->
+<!--          :total="total"-->
+<!--          @current-change="handleCurrentChange"-->
+<!--      />-->
+<!--    </div>-->
   </div>
 
 
@@ -109,7 +120,12 @@ import {ScrollTrigger} from "gsap/ScrollTrigger";
 import {method} from "lodash";
 
 gsap.registerPlugin(ScrollTrigger)
-
+// const currentPage = ref(5)
+// const total = ref(100)
+// const pageSize = ref(10)
+// const handleCurrentChange = (val) => {
+//   console.log(`current page: ${val}`)
+// }
 // let resize
 
 const data = reactive({

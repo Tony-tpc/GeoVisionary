@@ -24,17 +24,16 @@
     <div class="container section2" id="section2">
       <div class="videos-container">
         <div class="videos-title"></div>
-        <BilibiliVideos :videos="data.videos"></BilibiliVideos>
-        <div class="demo-pagination-block">
+        <BilibiliVideos :videos="displayVideos" :currentPage="currentPage"></BilibiliVideos>
+        <div class="pagination-block">
           <el-pagination
-              v-model:current-page="currentPage4"
-              :page-size="12"
-              :size="size"
+              v-model:current-page="currentPage"
+              :page-size="pageSize"
+              :size="'default'"
               :disabled="disabled"
               background
               layout="total, prev, pager, next, jumper"
-              :total="48"
-              @size-change="handleSizeChange"
+              :total="total"
               @current-change="handleCurrentChange"
           />
         </div>
@@ -44,32 +43,34 @@
 </template>
 
 <script setup>
-import {reactive, onMounted, ref} from "vue";
+import {reactive, onMounted, ref, computed} from "vue";
 import ph1 from '@/assets/test/Rec-test-1.jpeg';
 import ph2 from '@/assets/test/Rec-test-2.jpeg';
 import ph3 from '@/assets/test/Rec-test-3.jpeg';
 import ph4 from '@/assets/test/Rec-test-4.jpeg';
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { gsap } from "gsap";
-gsap.registerPlugin(ScrollTrigger)
+gsap.registerPlugin(ScrollTrigger);
 
 const data = reactive({
-  carouselItems:[ph1,ph2,ph3,ph4],
+  carouselItems:[ph1,ph2,ph3,ph4], // 轮播图
   videos:[{'bvid': 'BV1RN4y1f7Hn','p': 2},{'bvid': 'BV1RN4y1f7Hn','p': 3},{'bvid': 'BV1RN4y1f7Hn','p': 4},
     {'bvid': 'BV1RN4y1f7Hn','p': 5},{'bvid': 'BV1RN4y1f7Hn','p': 6},{'bvid': 'BV1RN4y1f7Hn','p': 7},
     {'bvid': 'BV1RN4y1f7Hn','p': 8},{'bvid': 'BV1RN4y1f7Hn','p': 9},{'bvid': 'BV1RN4y1f7Hn','p': 10},
-  ],
+  ], // 视频信息
 })
 
-const currentPage4 = ref(4)
-const size = ref('default')
-const disabled = ref(false)
+const currentPage = ref(1); // 当前页面
+const disabled = ref(false); // 禁用分页
+const total = ref(data.videos.length); // 视频总数量
+const pageSize = ref(4); // 页面视频数量
+const lastIndex = computed(() => currentPage.value * pageSize.value); // 当前页最后一个视频下标（不包括）
+// 展示视频内容
+const displayVideos = computed(() => data.videos.slice(lastIndex.value - pageSize.value, lastIndex.value))
 
-const handleSizeChange = (val) => {
-  console.log(`${val} items per page`)
-}
+// 处理页面切换
 const handleCurrentChange = (val) => {
-  console.log(`current page: ${val}`)
+  currentPage.value = val;
 }
 
 onMounted(() => {
@@ -149,5 +150,12 @@ onMounted(() => {
 .videos-container {
   position: relative;
   top: 20%;
+}
+
+/* 分页组件 */
+.pagination-block {
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 </style>

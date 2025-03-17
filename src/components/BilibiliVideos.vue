@@ -1,19 +1,22 @@
 <script setup>
+import { onMounted, watch} from "vue";
+
 const props = defineProps({
   bvid: {
     type: String,
-    required: false,
     default: '',
   },
   p: {
     type: Number,
-    required: false,
     default: 1,
   },
   videos: {
     type: Array,
-    required: false,
     default: () => [{'bvid':"BV1RN4y1f7Hn","p":1}],
+  },
+  currentPage: {
+    type: Number,
+    default: 1,
   }
 })
 
@@ -40,7 +43,6 @@ async function getBilibiliVideoInfo(bvid = "BV1RN4y1f7Hn", p = 1, index) {
     }
 
     const video = data.data;
-    console.log(video); // 查看完整数据结构
 
     // 解析所需信息
     const videoInfo = {
@@ -91,13 +93,23 @@ function displayVideoPreview(info,index) {
 `;
 }
 
-if (props.bvid) {
-  getBilibiliVideoInfo(props.bvid, props.p, 1);
-} else {
+onMounted(() => {
+  if (props.bvid) {
+    getBilibiliVideoInfo(props.bvid, props.p, 1);
+  } else {
+    props.videos.forEach((video, index) => {
+      console.log(video)
+      getBilibiliVideoInfo(video.bvid, video.p, index);
+    })
+  }
+})
+
+watch(() => props.currentPage, () => {
   props.videos.forEach((video, index) => {
     getBilibiliVideoInfo(video.bvid, video.p, index);
   })
-}
+})
+
 </script>
 
 <template>
