@@ -268,7 +268,14 @@ class TTSAudioConsumer(AsyncWebsocketConsumer):
         # 缓存剩余片段（句子未结束的部分）
         self.queue = [parts[-1]] if parts[-1] else []
 
-prompt = r"""
+class ChatConsumer(AsyncWebsocketConsumer):
+    async def connect(self):
+        await self.accept()
+        self.user = None
+        self.full_content = {"content": "", "reasoning": ""}
+        self.msg = ""
+        self.isNewchat = True
+        self.prompt = r"""
 请按照以下格式回答：
 
 1. **地理位置**：
@@ -293,47 +300,37 @@ prompt = r"""
    - 经济发展：{经济发展}
 """
 
-
-def sendTX(lat, lng):
-    try:
-        address = (
-            requests.get(
-                f"https://apis.map.qq.com/ws/geocoder/v1?key={TXDT_Key}&location={lat},{lng}"
+    def sendTX(self, lat, lng):
+        try:
+            address = (
+                requests.get(
+                    f"https://apis.map.qq.com/ws/geocoder/v1?key={TXDT_Key}&location={lat},{lng}"
+                )
+                .json()
+                .get("result", {})
+                .get("address_component", {})
             )
-            .json()
-            .get("result", {})
-            .get("address_component", {})
-        )
 
-        # 黑名单
-        components = [
-            ("nation", ("", "undefined", "Ocean")),
-            ("province", ("", "undefined")),
-            ("city", ("", "undefined")),
-        ]
+            # 黑名单
+            components = [
+                ("nation", ("", "undefined", "Ocean")),
+                ("province", ("", "undefined")),
+                ("city", ("", "undefined")),
+            ]
 
-        return (
-            "  ".join(
-                f"{key}: {address.get(key, '')}"
-                for key, excludes in components
-                if address.get(key, "") not in excludes
+            return (
+                "  ".join(
+                    f"{key}: {address.get(key, '')}"
+                    for key, excludes in components
+                    if address.get(key, "") not in excludes
+                )
+                or None
             )
-            or None
-        )
-        # 如果全部字段无效返回None
+            # 如果全部字段无效返回None
 
-    except (requests.RequestException, KeyError, json.JSONDecodeError) as e:
-        print(f"API请求失败: {e}")
-        return None
-
-
-class ChatConsumer(AsyncWebsocketConsumer):
-    async def connect(self):
-        await self.accept()
-        self.user = None
-        self.full_content = {"content": "", "reasoning": ""}
-        self.msg = ""
-        self.isNewchat = True
+        except (requests.RequestException, KeyError, json.JSONDecodeError) as e:
+            print(f"API请求失败: {e}")
+            return None
 
     async def receive(self, text_data):
         try:
@@ -361,13 +358,13 @@ class ChatConsumer(AsyncWebsocketConsumer):
         msg_type = message.get("type")
 
         if msg_type == "latlng":
-            region = await sync_to_async(sendTX)(message["lat"], message["lng"])
+            region = await sync_to_async(self.sendTX)(message["lat"], message["lng"])
             if region:
-                self.msg = f"""{prompt}
+                self.msg = f"""{self.prompt}
             现在，请告诉我{region}位置的地理信息和人文特点：
             纬度 {message['lat']}，经度 {message['lng']}"""
             else:
-                self.msg = f"""{prompt}
+                self.msg = f"""{self.prompt}
             现在，请告诉我位置的地理信息和人文特点：
             纬度 {message['lat']}，经度 {message['lng']}"""
         elif msg_type == "text":
@@ -397,19 +394,16 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     headers=headers,
                     json=payload,
                 ) as response:
-                    print(response)
                     if response.status_code != 200:
                         raise httpx.HTTPError(f"状态码异常: {response.status_code}")
 
                     async for chunk in response.aiter_lines():
                         if chunk.strip() == "data: [DONE]":
                             break
-                        print(chunk)
                         if chunk.startswith("data:"):
                             try:
                                 data = json.loads(chunk[5:].strip())
                                 delta = data.get("choices", [{}])[0].get("delta", {})
-                                print(delta)
                                 # 处理推理链
 
                                 self.full_content["content"] += (

@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.utils.html import format_html
 from import_export import resources
 from import_export.admin import ImportExportModelAdmin
 from .models import FrontendUser,Category,ExamSet,Problem,UserHistory,UserConversation,APIConfig
@@ -95,16 +96,16 @@ admin.site.register(Category,CategoryAdmin)
 # 试题组管理
 class ExamSetAdmin(ImportExportModelAdmin):
     # 指定展示内容
-    list_display = ['get_title','get_description','get_image','get_categories','get_created_at']
+    list_display = ['id','get_title','get_description','get_image_preview','get_categories','get_created_at']
 
     # 指定一页显示多少条数据
     list_per_page = 10
 
     # 过滤器
-    list_filter = ['title','created_at']
+    list_filter = ['categories','created_at']
 
     # 搜索框
-    search_fields = ['title','description','categories__category_type']
+    search_fields = ['title','description','categories__name']
 
     # 显示、汉化、允许排序
     def get_categories(self, obj: ExamSet):
@@ -122,10 +123,11 @@ class ExamSetAdmin(ImportExportModelAdmin):
     get_description.short_description = '试题背景'
     get_description.admin_order_field = 'description'
 
-    def get_image(self, obj: ExamSet):
-        return obj.image
-    get_image.short_description = '图片'
-    get_image.admin_order_field = 'image'
+    def get_image_preview(self, obj: ExamSet):
+        if obj.image:
+            return format_html('<img src="{}" width="100px" height="auto"/>', obj.image.url)
+        return "无图片"
+    get_image_preview.short_description = '图片预览'
 
     def get_created_at(self, obj: ExamSet):
         return obj.created_at
@@ -143,16 +145,16 @@ admin.site.register(ExamSet,ExamSetAdmin)
 # 试题表管理
 class ProblemAdmin(ImportExportModelAdmin):
     # 显示展示内容
-    list_display = ['get_exam_set','get_question_number','get_question','get_choices','get_answer','get_explanation','get_created_at']
+    list_display = ['id','get_exam_set','get_question_number','get_question','get_choices_formatted','get_answer','get_explanation','get_categories','get_created_at']
 
     # 指定一页显示多少条数据
     list_per_page = 10
 
     # 过滤器
-    list_filter = ['created_at','exam_set','question_number']
+    list_filter = ['created_at','categories']
 
     # 搜索框
-    search_fields = ['question','created_at','question_number','exam_set__categories__category_type']
+    search_fields = ['question','categories__name','exam_set__title']
 
     # 显示、汉化、允许排序
     def get_exam_set(self, obj: Problem):
@@ -170,13 +172,15 @@ class ProblemAdmin(ImportExportModelAdmin):
     get_question.short_description = '小题题干'
     get_question.admin_order_field = 'question'
 
-    def get_choices(self, obj: Problem):
-        return obj.choices
-    get_choices.short_description = '选项'
-    get_choices.admin_order_field = 'choices'
+    def get_choices_formatted(self, obj: Problem):
+        """ 美化选项显示（换行） """
+        return format_html("<br>".join([f"<b>{key}</b>: {value}" for key, value in obj.choices.items()]))
+    get_choices_formatted.short_description = '选项'
 
     def get_answer(self, obj: Problem):
-        return obj.answer
+        """ 获取答案唯一值，并用逗号隔开 """
+        value = next(iter(obj.answer.values()))
+        return format_html(",".join([f"<b>{item}</b>" for item in value]))
     get_answer.short_description = '答案'
     get_answer.admin_order_field = 'answer'
 
@@ -185,10 +189,21 @@ class ProblemAdmin(ImportExportModelAdmin):
     get_explanation.short_description = '解析'
     get_explanation.admin_order_field = 'explanation'
 
+    def get_categories(self, obj: Problem):
+        return ", ".join([category.name for category in obj.categories.all()])
+    get_categories.short_description = '类别'
+    get_categories.admin_order_field = 'categories'
+
     def get_created_at(self, obj: Problem):
         return obj.created_at
     get_created_at.short_description = '建立时间'
     get_created_at.admin_order_field = 'created_at'
+
+    # 导入/导出配置
+    class ProxyResource(resources.ModelResource):
+        class Meta:
+            model = Problem
+    resource_class = ProxyResource
 
 admin.site.register(Problem,ProblemAdmin)
 

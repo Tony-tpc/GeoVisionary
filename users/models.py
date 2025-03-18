@@ -54,17 +54,13 @@ class FrontendUser(models.Model):
 
 # 试题分类表（年份、地区、考点）
 class Category(models.Model):
+    CATEGORY_TYPES = [("year", "年份"), ("region", "地区"), ("topic", "考点")]
+
     name = models.CharField(max_length=100, unique=True)  # 类别名称
-    category_type = models.CharField(
-        max_length=20, choices=[("year", "年份"), ("region", "地区"), ("topic", "考点")]
-    )  # 具体分类类型
+    category_type = models.CharField(max_length=20, choices=CATEGORY_TYPES)  # 具体分类类型
 
     def __str__(self):
         return f"{self.name} ({self.get_category_type_display()})"
-
-    class Meta:
-        verbose_name = _("类别")
-        verbose_name_plural = _("类别")
 
 # 试题组（大题）
 class ExamSet(models.Model):
@@ -77,20 +73,27 @@ class ExamSet(models.Model):
     def __str__(self):
         return self.title
 
-
-# 试题表（子题）
+# 试题表（支持单题和子题）
 class Problem(models.Model):
-    exam_set = models.ForeignKey(ExamSet, on_delete=models.CASCADE, related_name="problems")  # 关联试题组
-    question_number = models.PositiveIntegerField()  # 小题编号（如 "1"、"2"）
+    QUESTION_TYPES = [
+        ("single", "单选"),
+        ("multiple", "多选"),
+    ]
+
+    categories = models.ManyToManyField(Category)  # 关联分类（适用于单题）
+    exam_set = models.ForeignKey(ExamSet, on_delete=models.CASCADE, related_name="problems", null=True, blank=True)  # 关联试题组
+    question_number = models.PositiveIntegerField(null=True, blank=True)  # 小题编号（如 "1"、"2"（仅子题使用））
     question = models.TextField()  # 小题题干
+    type = models.CharField(max_length=10, choices=QUESTION_TYPES, default="single")  # 题型
     choices = models.JSONField()  # 选择题选项（A/B/C/D）
-    answer = models.CharField(max_length=10)  # 正确答案（A/B/C/D）
+    answer = models.JSONField()  # 正确答案（支持单选 & 多选）
     explanation = models.TextField()  # 解析
     created_at = models.DateTimeField(auto_now_add=True)  # 题目创建时间
 
     def __str__(self):
-        return f"题组 {self.exam_set.id} - 小题 {self.question_number}"
-
+        if self.exam_set:
+            return f"题组 {self.exam_set.id} - 小题 {self.question_number}"
+        return f"独立试题: {self.question[:30]}"  # 单题时显示前30个字符
 
 # 用户错题表
 class UserHistory(models.Model):
