@@ -608,11 +608,15 @@ watch(() => props.isLoading, () => {
   if (!props.isLoading) {
     if (props.questions.length > 0) {
       questions.value = props.questions;
-      currentIndex.value = 0;
-      currentPage.value = 0;
     } else {
       questions.value = defaultQuestion;
     }
+    currentIndex.value = 0;
+    currentPage.value = 0;
+    userAnswers.value = {};
+    selectedOptions.value = {};
+    submitted.value = false;
+    gsap.set('.explanation', { display: 'none' });
   }
 })
 </script>
