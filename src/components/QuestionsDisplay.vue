@@ -19,20 +19,20 @@
     <!-- 题目展示 -->
     <div class="question">
       <!--  题目图片（如果存在）  -->
-      <h3>{{ currentQuestion.text }}</h3>
+      <h3>{{ currentQuestion.description !== undefined ? currentQuestion.description : currentQuestion.question }}</h3>
       <h2>
-        <img v-if="currentQuestion.image" :src="currentQuestion.image" @click="openImage(currentQuestion.image)" />
+        <img v-if="currentQuestion.image" :src="processImageUrl(currentQuestion.image)" @click="openImage(currentQuestion.image)" />
       </h2>
 
       <!-- 如果是大题，循环渲染子题 -->
       <template v-if="currentQuestion.sub_questions">
         <div v-for="(subQ, index) in currentQuestion.sub_questions" :key="subQ.id" class="sub-question">
-          <h4>{{ subQ.text }}</h4>
+          <h4>{{ subQ.question }}</h4>
 
           <!-- 单选框 -->
           <div v-if="subQ.type === 'single'">
             <el-radio-group v-model="selectedOptions[subQ.id]" class="radio-group">
-              <el-radio v-for="(option, key) in subQ.options"
+              <el-radio v-for="(option, key) in subQ.choices"
                         :value="option"
                         :label="option"
                         :disabled="hasAnswered(subQ.id)"
@@ -57,7 +57,7 @@
           <!-- 多选框 -->
           <div v-if="subQ.type === 'multiple'">
             <el-checkbox-group v-model="selectedOptions[subQ.id]" class="checkbox-group">
-              <el-checkbox v-for="(option, key) in subQ.options"
+              <el-checkbox v-for="(option, key) in subQ.choices"
                            :value="option"
                            :label="option"
                            :disabled="hasAnswered(subQ.id)"
@@ -94,7 +94,7 @@
           <el-radio-group v-model="selectedOptions[currentQuestion.id]" class="radio-group">
             <!--  option 存储选项内容，key 存储选项  -->
             <!--  selectedOptions 存储选项内容，currentQuestions.answer 和 userAnswers[index].selected 均存储选项   -->
-            <el-radio v-for="(option,key) in currentQuestion.options"
+            <el-radio v-for="(option,key) in currentQuestion.choices"
                       :value="option"
                       :label="option"
                       class="radio-option"
@@ -120,7 +120,7 @@
         <div v-if="currentQuestion.type === 'multiple'">
           <el-checkbox-group v-model="selectedOptions[currentQuestion.id]" class="checkbox-group">
             <!--  option 存储选项内容，key 存储选项  -->
-            <el-checkbox v-for="(option,key) in currentQuestion.options"
+            <el-checkbox v-for="(option,key) in currentQuestion.choices"
                          :value="option"
                          :label="option"
                          :disabled="hasAnswered()"
@@ -163,6 +163,7 @@
       <el-pagination
           v-model:current-page="displayPage"
           v-model:page-size="pageSize"
+          hide-on-single-page
           :size="'default'"
           :background="true"
           layout="prev, pager, next, jumper"
@@ -194,173 +195,14 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import {gsap} from "gsap";
 import { ElMessageBox } from 'element-plus'
 // 传入参数
 const props = defineProps({
   questions: {
     type: Array,
-    default: () => [
-      {
-        id: 1, text: "地球的公转周期是多少天？", type: "single",
-        options: { A: "365天", B: "366天", C: "360天" }, answer: ["A"],
-        explanation: "地球公转周期约为365.25天。"
-      },
-      {
-        id: 2, text: "太阳系的行星有哪些？", type: "multiple",
-        options: { A: "地球", B: "火星", C: "冥王星" }, answer: ["A", "B"],
-        explanation: "冥王星已被降级为矮行星。"
-      },
-      {
-        id: 3, text: "地球的公转周期是多少天？", type: "single",
-        options: { A: "365天", B: "366天", C: "360天" }, answer: ["A"],
-        explanation: "地球公转周期约为365.25天。"
-      },
-      {
-        id: 4, text: "太阳系的行星有哪些？", type: "multiple",
-        options: { A: "地球", B: "火星", C: "冥王星" }, answer: ["A", "B"],
-        explanation: "冥王星已被降级为矮行星。"
-      },
-      {
-        id: 5, text: "地球的公转周期是多少天？", type: "single",
-        options: { A: "365天", B: "366天", C: "360天" }, answer: ["A"],
-        explanation: "地球公转周期约为365.25天。"
-      },
-      {
-        id: 6, text: "太阳系的行星有哪些？", type: "multiple",
-        options: { A: "地球", B: "火星", C: "冥王星" }, answer: ["A", "B"],
-        explanation: "冥王星已被降级为矮行星。"
-      },
-      {
-        id: 7, text: "地球的公转周期是多少天？", type: "single",
-        options: { A: "365天", B: "366天", C: "360天" }, answer: ["A"],
-        explanation: "地球公转周期约为365.25天。"
-      },
-      {
-        id: 8, text: "太阳系的行星有哪些？", type: "multiple",
-        options: { A: "地球", B: "火星", C: "冥王星" }, answer: ["A", "B"],
-        explanation: "冥王星已被降级为矮行星。"
-      },
-      {
-        id: 9, text: "地球的公转周期是多少天？", type: "single",
-        options: { A: "365天", B: "366天", C: "360天" }, answer: ["A"],
-        explanation: "地球公转周期约为365.25天。"
-      },
-
-      // ❸ 大题（含多个小题）
-      {
-        id: 10, text: "苏州工业园区是中国和新加坡两国政府间的重要合作项目。图1示意苏州工业园区中的中新合作区1994-2000年实施的功能区布局规划。规划思路是通过基础设施建设，优先开发工业用地；当人口集聚到一定规模后，加大开发居住用地；当人口进一步集聚后，再重点开发商业用地。据此完成下面小题。",
-        image: '../src/assets/test/img.png',
-        sub_questions: [
-          {
-            id: "10-1",
-            text: "1. 中新合作区的工业区对商业区形成强力支撑的原因是工业区带动了（    ）\n"  +
-                "①人口集聚    ②服务业集聚    ③人才集聚    ④技术集聚",
-            type: "single",
-            options: { A: "①②", B: "②③", C: "③④", D: "①④" },
-            answer: ["A"],
-            explanation: "结合所学知识，阅读图文材料可知，中新合作区的工业区的建立，将吸引大量的人口集中到居住区，对商业区带来大量的人流量，①正确;同时工业区就业人数数量大，可以带动服务业的发展，促进服务业在商业区集中，②正确;人才的集聚和技术的集聚对商业区的影响起不到支撑作用，③和④错误。"
-          },
-          {
-            id: "10-2",
-            text: "2. 住宅区规划在商业区和工业区之间，主要有利于（    ）",
-            type: "single",
-            options: { A: "节约土地资源", B: "增加绿地面积", C: "组织内外交通", D: "完善市政设施" },
-            answer: ["C"],
-            explanation: "结合所学知识，阅读图文材料可知，住宅区规划在商业区和工业区之间，并不能节约土地资源，A错误;住宅区范围较大，位于两者之间，绿化带的范围大小主要看设计思想，于位置关系不大，B错误;图中显示城市主干道贯穿住宅区、商业区和工业区，而住宅区位于中间，主要是为了加强居民工作和休闲的交通，因此主要有利于组织内外交通，C正确;住宅区所处任何位置都可以完善市政设施，因此主要目的不是完善市政设施，D错误。"
-          },
-          {
-            id: "10-3",
-            text: "3. 苏州老城主干道向东延伸串联中新合作区各功能区，体现的布局思路是（    ）\n" +
-                "①轴向发展    ②职住平衡    ③均衡发展    ④地租递减",
-            type: "single",
-            options: { A: "①③", B: "②④", C: "②③", D: "①④" },
-            answer: ["A"],
-            explanation: "结合所学知识，阅读图文材料可知，图中显示其整体功能分区明确，商业区位于老城区和住宅区之间，体现功能中心地位，同时向城市主干道方向发展，最终延伸到最外围的工业区，体现其轴向发展的布局思想，①正确;老城区主干道延伸串联各功能区后，老城区在工业区居住人员较远，没有体现职住平衡的思路，②错误;将各功能区串联后，可以促进新区的发展，平衡老城和新城共同发展，③正确;图中显示老城区地租较高，串联新合作区功能各功能区后，地租逐渐升高的是商业区，且商业区地租将高于老城区，并未体现地租递减的思路，④错误。"
-          }
-        ]
-      },
-      {
-        id: 11, text: "地球的公转周期是多少天？", type: "single",
-        options: { A: "365天", B: "366天", C: "360天" }, answer: ["A"],
-        explanation: "地球公转周期约为365.25天。"
-      },
-      {
-        id: 12, text: "太阳系的行星有哪些？", type: "multiple",
-        options: { A: "地球", B: "火星", C: "冥王星" }, answer: ["A", "B"],
-        explanation: "冥王星已被降级为矮行星。"
-      },
-      {
-        id: 13, text: "地球的公转周期是多少天？", type: "single",
-        options: { A: "365天", B: "366天", C: "360天" }, answer: ["A"],
-        explanation: "地球公转周期约为365.25天。"
-      },
-      {
-        id: 14, text: "太阳系的行星有哪些？", type: "multiple",
-        options: { A: "地球", B: "火星", C: "冥王星" }, answer: ["A", "B"],
-        explanation: "冥王星已被降级为矮行星。"
-      },
-      {
-        id: 15, text: "地球的公转周期是多少天？", type: "single",
-        options: { A: "365天", B: "366天", C: "360天" }, answer: ["A"],
-        explanation: "地球公转周期约为365.25天。"
-      },
-      {
-        id: 16, text: "太阳系的行星有哪些？", type: "multiple",
-        options: { A: "地球", B: "火星", C: "冥王星" }, answer: ["A", "B"],
-        explanation: "冥王星已被降级为矮行星。"
-      },
-      {
-        id: 17, text: "地球的公转周期是多少天？", type: "single",
-        options: { A: "365天", B: "366天", C: "360天" }, answer: ["A"],
-        explanation: "地球公转周期约为365.25天。"
-      },
-      {
-        id: 18, text: "太阳系的行星有哪些？", type: "multiple",
-        options: { A: "地球", B: "火星", C: "冥王星" }, answer: ["A", "B"],
-        explanation: "冥王星已被降级为矮行星。"
-      },
-      {
-        id: 19, text: "地球的公转周期是多少天？", type: "single",
-        options: { A: "365天", B: "366天", C: "360天" }, answer: ["A"],
-        explanation: "地球公转周期约为365.25天。"
-      },
-
-      // ❸ 大题（含多个小题）
-      {
-        id: 20, text: "苏州工业园区是中国和新加坡两国政府间的重要合作项目。图1示意苏州工业园区中的中新合作区1994-2000年实施的功能区布局规划。规划思路是通过基础设施建设，优先开发工业用地；当人口集聚到一定规模后，加大开发居住用地；当人口进一步集聚后，再重点开发商业用地。据此完成下面小题。",
-        image: '../src/assets/test/img.png',
-        sub_questions: [
-          {
-            id: "20-1",
-            text: "1. 中新合作区的工业区对商业区形成强力支撑的原因是工业区带动了（    ）\n"  +
-                "①人口集聚    ②服务业集聚    ③人才集聚    ④技术集聚",
-            type: "single",
-            options: { A: "①②", B: "②③", C: "③④", D: "①④" },
-            answer: ["A"],
-            explanation: "结合所学知识，阅读图文材料可知，中新合作区的工业区的建立，将吸引大量的人口集中到居住区，对商业区带来大量的人流量，①正确;同时工业区就业人数数量大，可以带动服务业的发展，促进服务业在商业区集中，②正确;人才的集聚和技术的集聚对商业区的影响起不到支撑作用，③和④错误。"
-          },
-          {
-            id: "20-2",
-            text: "2. 住宅区规划在商业区和工业区之间，主要有利于（    ）",
-            type: "single",
-            options: { A: "节约土地资源", B: "增加绿地面积", C: "组织内外交通", D: "完善市政设施" },
-            answer: ["C"],
-            explanation: "结合所学知识，阅读图文材料可知，住宅区规划在商业区和工业区之间，并不能节约土地资源，A错误;住宅区范围较大，位于两者之间，绿化带的范围大小主要看设计思想，于位置关系不大，B错误;图中显示城市主干道贯穿住宅区、商业区和工业区，而住宅区位于中间，主要是为了加强居民工作和休闲的交通，因此主要有利于组织内外交通，C正确;住宅区所处任何位置都可以完善市政设施，因此主要目的不是完善市政设施，D错误。"
-          },
-          {
-            id: "20-3",
-            text: "3. 苏州老城主干道向东延伸串联中新合作区各功能区，体现的布局思路是（    ）\n" +
-                "①轴向发展    ②职住平衡    ③均衡发展    ④地租递减",
-            type: "single",
-            options: { A: "①③", B: "②④", C: "②③", D: "①④" },
-            answer: ["A"],
-            explanation: "结合所学知识，阅读图文材料可知，图中显示其整体功能分区明确，商业区位于老城区和住宅区之间，体现功能中心地位，同时向城市主干道方向发展，最终延伸到最外围的工业区，体现其轴向发展的布局思想，①正确;老城区主干道延伸串联各功能区后，老城区在工业区居住人员较远，没有体现职住平衡的思路，②错误;将各功能区串联后，可以促进新区的发展，平衡老城和新城共同发展，③正确;图中显示老城区地租较高，串联新合作区功能各功能区后，地租逐渐升高的是商业区，且商业区地租将高于老城区，并未体现地租递减的思路，④错误。"
-          }
-        ]
-      }
-    ],
+    default: () => [],
   },
   isLoading: {
     type: Boolean,
@@ -368,15 +210,99 @@ const props = defineProps({
   }
 })
 
+const defaultQuestion = [
+  {
+    id: 1, question: "地球的公转周期是多少天？", type: "single",
+    choices: { A: "365天", B: "366天", C: "360天" }, answer: ["A"],
+    explanation: "地球公转周期约为365.25天。"
+  },
+  {
+    id: 2, question: "太阳系的行星有哪些？", type: "multiple",
+    choices: { A: "地球", B: "火星", C: "冥王星" }, answer: ["A", "B"],
+    explanation: "冥王星已被降级为矮行星。"
+  },
+  {
+    id: 3, question: "地球的公转周期是多少天？", type: "single",
+    choices: { A: "365天", B: "366天", C: "360天" }, answer: ["A"],
+    explanation: "地球公转周期约为365.25天。"
+  },
+  {
+    id: 4, question: "太阳系的行星有哪些？", type: "multiple",
+    choices: { A: "地球", B: "火星", C: "冥王星" }, answer: ["A", "B"],
+    explanation: "冥王星已被降级为矮行星。"
+  },
+  {
+    id: 5, question: "地球的公转周期是多少天？", type: "single",
+    choices: { A: "365天", B: "366天", C: "360天" }, answer: ["A"],
+    explanation: "地球公转周期约为365.25天。"
+  },
+  {
+    id: 6, question: "太阳系的行星有哪些？", type: "multiple",
+    choices: { A: "地球", B: "火星", C: "冥王星" }, answer: ["A", "B"],
+    explanation: "冥王星已被降级为矮行星。"
+  },
+  {
+    id: 7, question: "地球的公转周期是多少天？", type: "single",
+    choices: { A: "365天", B: "366天", C: "360天" }, answer: ["A"],
+    explanation: "地球公转周期约为365.25天。"
+  },
+  {
+    id: 8, question: "太阳系的行星有哪些？", type: "multiple",
+    choices: { A: "地球", B: "火星", C: "冥王星" }, answer: ["A", "B"],
+    explanation: "冥王星已被降级为矮行星。"
+  },
+  {
+    id: 9, question: "地球的公转周期是多少天？", type: "single",
+    choices: { A: "365天", B: "366天", C: "360天" }, answer: ["A"],
+    explanation: "地球公转周期约为365.25天。"
+  },
+  {
+    id: 10, description: "苏州工业园区是中国和新加坡两国政府间的重要合作项目。图1示意苏州工业园区中的中新合作区1994-2000年实施的功能区布局规划。规划思路是通过基础设施建设，优先开发工业用地；当人口集聚到一定规模后，加大开发居住用地；当人口进一步集聚后，再重点开发商业用地。据此完成下面小题。",
+    image: '../src/assets/test/img.png',
+    sub_questions: [
+      {
+        id: "10-1",
+        question: "1. 中新合作区的工业区对商业区形成强力支撑的原因是工业区带动了（    ）\n"  +
+            "①人口集聚    ②服务业集聚    ③人才集聚    ④技术集聚",
+        type: "single",
+        choices: { A: "①②", B: "②③", C: "③④", D: "①④" },
+        answer: ["A"],
+        explanation: "结合所学知识，阅读图文材料可知，中新合作区的工业区的建立，将吸引大量的人口集中到居住区，对商业区带来大量的人流量，①正确;同时工业区就业人数数量大，可以带动服务业的发展，促进服务业在商业区集中，②正确;人才的集聚和技术的集聚对商业区的影响起不到支撑作用，③和④错误。"
+      },
+      {
+        id: "10-2",
+        question: "2. 住宅区规划在商业区和工业区之间，主要有利于（    ）",
+        type: "single",
+        choices: { A: "节约土地资源", B: "增加绿地面积", C: "组织内外交通", D: "完善市政设施" },
+        answer: ["C"],
+        explanation: "结合所学知识，阅读图文材料可知，住宅区规划在商业区和工业区之间，并不能节约土地资源，A错误;住宅区范围较大，位于两者之间，绿化带的范围大小主要看设计思想，于位置关系不大，B错误;图中显示城市主干道贯穿住宅区、商业区和工业区，而住宅区位于中间，主要是为了加强居民工作和休闲的交通，因此主要有利于组织内外交通，C正确;住宅区所处任何位置都可以完善市政设施，因此主要目的不是完善市政设施，D错误。"
+      },
+      {
+        id: "10-3",
+        question: "3. 苏州老城主干道向东延伸串联中新合作区各功能区，体现的布局思路是（    ）\n" +
+            "①轴向发展    ②职住平衡    ③均衡发展    ④地租递减",
+        type: "single",
+        choices: { A: "①③", B: "②④", C: "②③", D: "①④" },
+        answer: ["A"],
+        explanation: "结合所学知识，阅读图文材料可知，图中显示其整体功能分区明确，商业区位于老城区和住宅区之间，体现功能中心地位，同时向城市主干道方向发展，最终延伸到最外围的工业区，体现其轴向发展的布局思想，①正确;老城区主干道延伸串联各功能区后，老城区在工业区居住人员较远，没有体现职住平衡的思路，②错误;将各功能区串联后，可以促进新区的发展，平衡老城和新城共同发展，③正确;图中显示老城区地租较高，串联新合作区功能各功能区后，地租逐渐升高的是商业区，且商业区地租将高于老城区，并未体现地租递减的思路，④错误。"
+      }
+    ]
+  },
+  {
+    id: 11, question: "太阳系的行星有哪些？", type: "multiple",
+    choices: { A: "地球", B: "火星", C: "冥王星" }, answer: ["A", "B"],
+    explanation: "冥王星已被降级为矮行星。"
+  },
+]
 
-const questions = ref(props.questions); // 题目对象
+const questions = ref(props.questions.length > 0 ? props.questions : defaultQuestion); // 题目对象
 const currentIndex = ref(0); // 题号
 const currentPage = ref(0); // 页码十位
 const submitted = ref(false); // 是否提交
 const selectedOptions = ref({}); // 选中选项内容
 const userAnswers = ref({}) // 用户回答对象
 const dialogVisible = ref(false) // 是否显示对话框
-const total = ref(questions.value.length) // 总题数
+const total = computed(() => questions.value.length) // 总题数
 const pageSize = ref(10) // 每页题数
 
 // 显示的页码
@@ -385,7 +311,7 @@ const displayPage = computed(() => currentPage.value + 1);
 // 处理页面切换
 const handleCurrentChange = (val) => {
   currentPage.value = val - 1;
-  console.log(`current page: ${val}`)
+  currentIndex.value = currentPage.value * 10;
 }
 
 // 当前问题对象
@@ -502,10 +428,10 @@ const checkUserAnswer = (question) => {
   if (question.type === "multiple") {
     selectedKeys = [];
     for (let i = 0; i < selectedOptions.value[question.id].length; i++) {
-      selectedKeys.push(Object.keys(question.options).find(key => question.options[key] === selectedOptions.value[question.id][i]));
+      selectedKeys.push(Object.keys(question.choices).find(key => question.choices[key] === selectedOptions.value[question.id][i]));
     }
   } else if (question.type === "single") {
-    selectedKeys = Object.keys(question.options).find(key => question.options[key] === selectedOptions.value[question.id].toString());
+    selectedKeys = Object.keys(question.choices).find(key => question.choices[key] === selectedOptions.value[question.id].toString());
   }
   const selectedSet = new Set(selectedKeys);
 
@@ -567,6 +493,8 @@ const displayExplanation = () => {
 const nextQuestion = () => {
   if (currentIndex.value < questions.value.length - 1) {
     currentIndex.value++;
+    if (currentIndex.value >= (currentPage.value + 1) * 10)
+      currentPage.value++;
     reset();
   }
 }
@@ -575,21 +503,9 @@ const nextQuestion = () => {
 const prevQuestion = () => {
   if (currentIndex.value > 0) {
     currentIndex.value--;
+    if (currentIndex.value === currentPage.value * 10 - 1)
+      currentPage.value--;
     reset();
-  }
-}
-
-// 下一页
-const nextPage = () => {
-  if ((currentPage.value + 1) * 10 < questions.value.length) {
-    currentPage.value++;
-  }
-}
-
-// 上一页
-const prevPage = () => {
-  if (currentPage.value > 0) {
-    currentPage.value--;
   }
 }
 
@@ -608,7 +524,7 @@ const reset = () => {
         // 利用子问题 id 最后一位即子问题题号来查找具体子问题
         let currentSubQ = currentQuestion.value.sub_questions[subQ.id[subQ.id.length - 1] - 1];
         // 获取选项对象
-        let currentOptions = currentSubQ.options;
+        let currentOptions = currentSubQ.choices;
 
         if (subQ.type === "multiple") {
           // 多选则遍历选项列表并添加
@@ -643,10 +559,10 @@ const reset = () => {
       if (currentQuestion.value.type === "multiple") {
         selectedOptions.value[currentQuestion.value.id] = [];
         for (let i = 0 ; i < prevAnswer.selected.length; i++) {
-          selectedOptions.value[currentQuestion.value.id].push(currentQuestion.value.options[prevAnswer.selected[i]]);
+          selectedOptions.value[currentQuestion.value.id].push(currentQuestion.value.choices[prevAnswer.selected[i]]);
         }
       } else {
-       selectedOptions.value[currentQuestion.value.id] = currentQuestion.value.options[prevAnswer.selected[0]];
+       selectedOptions.value[currentQuestion.value.id] = currentQuestion.value.choices[prevAnswer.selected[0]];
       }
       submitted.value = true;
       requestAnimationFrame(displayExplanation);
@@ -662,6 +578,11 @@ const reset = () => {
     }
   }
 };
+
+// 加工图片 url
+const processImageUrl = (url) => {
+  return 'http://localhost:8040' + url;
+}
 
 // 放大图片
 const openImage = (imageURL) => {
@@ -681,6 +602,18 @@ const handleClose = (done) => {
 
 onMounted(() => {
   reset();
+})
+
+watch(() => props.isLoading, () => {
+  if (!props.isLoading) {
+    if (props.questions.length > 0) {
+      questions.value = props.questions;
+      currentIndex.value = 0;
+      currentPage.value = 0;
+    } else {
+      questions.value = defaultQuestion;
+    }
+  }
 })
 </script>
 

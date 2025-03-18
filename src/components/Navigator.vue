@@ -81,8 +81,7 @@
                     </span>
                     <template #dropdown>
                       <el-dropdown-menu>
-                        <el-dropdown-item><span class="menu-fonts" style="font-size: 16px">个人中心</span></el-dropdown-item>
-                        <el-dropdown-item><span class="menu-fonts" style="font-size: 16px">设置</span></el-dropdown-item>
+                        <el-dropdown-item><span class="menu-fonts" style="font-size: 16px" @click="router.push('/navigator/personal')">个人中心</span></el-dropdown-item>
                         <el-dropdown-item @click="handleLogout"><span class="menu-fonts" style="font-size: 16px">退出</span></el-dropdown-item>
                       </el-dropdown-menu>
                     </template>
@@ -141,7 +140,7 @@ let ticking = false;
 const updateTheme = throttle(() => {
   const noNeedForDarkTheme = data.activeIndex === '/navigator/landform' || data.activeIndex === '/navigator/moon-phase' || data.activeIndex === '/navigator/galaxy' || data.activeIndex === '/navigator/insight-lab';
   // 之后可根据需要改变主题切换逻辑
-  if (data.activeIndex === '/navigator/geo-graph') {
+  if (data.activeIndex === '/navigator/geo-graph' || data.activeIndex === '/navigator/personal') {
     data.isDarkMode = true;
     data.logo = darkLogo;
   } else if ( noNeedForDarkTheme ) {

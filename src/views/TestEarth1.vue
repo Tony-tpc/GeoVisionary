@@ -42,7 +42,7 @@
 <!--    <div>-->
 <!--      <LeaderBoard />-->
 <!--    </div>-->
-<!--    <QuestionsDisplay />-->
+    <QuestionsDisplay />
 <!--    <div class="pagination-block">-->
 <!--      <el-pagination-->
 <!--          v-model:current-page="currentPage"-->

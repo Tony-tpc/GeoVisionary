@@ -56,7 +56,7 @@
 
       <!--  试题组件  -->
       <div class="display-question">
-        <QuestionsDisplay :isLoading="isLoading"/>
+        <QuestionsDisplay :isLoading="isLoading" :questions="questions"/>
       </div>
 
       <!--  排行榜  -->
@@ -68,13 +68,15 @@
 </template>
 
 <script setup>
-import { onMounted,ref } from "vue";
+import { onMounted, ref, computed } from "vue";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { gsap } from "gsap";
 gsap.registerPlugin(ScrollTrigger);
 
 const selectedCategory = ref(null); // 选中类别
 const isLoading = ref(false); // 控制加载
+const questionsResponse = ref([]);
+const questions = computed(() => questionsResponse.value.length > 0 ? questionsResponse.value : []);
 
 // 处理鼠标移入导航栏
 const handleEnterNav = () => {
@@ -93,7 +95,7 @@ const handleLeaveNav = () => {
 }
 
 // 选中菜单栏后，向后端发送请求
-const fetchQuestions = (selectedItem) => {
+const fetchQuestions = async (selectedItem) => {
   isLoading.value = true;
   // 隐藏介绍文字和排行榜，并展示题目（初始默认加载）
   gsap.timeline()
@@ -103,12 +105,20 @@ const fetchQuestions = (selectedItem) => {
       .to('.display-question',{opacity: 1});
 
   // 向后端发送请求
-  selectedCategory.value = selectedItem;
+  selectedCategory.value = selectedItem[selectedItem.category];
   console.log("请求后端的数据:", selectedCategory.value);
   // 根据选中的对象请求后端
-  setTimeout(() => {
-    isLoading.value = false;
-  },3000)
+  try {
+    const response = await fetch(`http://localhost:8040/api/exams/?category=${selectedCategory.value}`);
+    const data = await response.json();
+    questionsResponse.value = data || [];  // 确保 data 至少是空数组
+  } catch (error) {
+    console.error("获取题目数据失败", error);
+    questionsResponse.value = [];  // 如果请求失败，返回空数组
+  } finally {
+    console.log(questions.value);
+    isLoading.value = false;  // 只在数据处理完成后再设为 false
+  }
 };
 
 onMounted(() => {
