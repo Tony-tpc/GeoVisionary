@@ -244,10 +244,9 @@ const closeContextMenu = () => {
 /* 主容器布局 */
 .main-container {
     display: flex;
-    height: 100vh;
+    height: auto;
     width: 100%;
     margin: 0 auto;
-    overflow-y: scroll;
 }
 
 .custom-context-menu {
@@ -271,7 +270,7 @@ const closeContextMenu = () => {
     transition: width 0.3s ease;
     display: flex;
     flex-direction: column;
-    overflow-y: scroll;
+    overflow-y: auto;
     overflow-x: hidden;
 }
 

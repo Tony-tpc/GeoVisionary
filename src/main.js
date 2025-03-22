@@ -29,17 +29,5 @@ const ChatContent = defineAsyncComponent(() => {
     import('./components/ChatContent.vue')
 })
 
-const ScrollButton = defineAsyncComponent(() => {
-    import('./components/ScrollButton.vue')
-})
-
-const Loading = defineAsyncComponent(() => {
-    import('./components/Loading.vue')
-})
-
-const BilibiliVideos = defineAsyncComponent(() => {
-    import('./components/BilibiliVideos.vue')
-})
-
 app.component('ChatContent', ChatContent)
 app.mount('#app')

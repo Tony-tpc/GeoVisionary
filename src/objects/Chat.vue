@@ -582,10 +582,8 @@ button::before {
 .reasoning-content {
   transition: all 0.3s ease;
   max-height: 400px;
-  overflow-y: scroll;
+  overflow-y: auto;
 }
-
-
 
 /* 展开状态 */
 .reasoning-content[v-show="true"] {

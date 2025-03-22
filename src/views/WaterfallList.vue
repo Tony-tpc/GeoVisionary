@@ -12,7 +12,8 @@
       :animation-effect="options.animationEffect" :animation-duration="options.animationDuration"
       :animation-delay="options.animationDelay" :animation-cancel="options.animationCancel" :lazyload="options.lazyload"
       :load-props="options.loadProps" :cross-origin="options.crossOrigin" :align="options.align"
-      @afterRender="afterRender">
+      @afterRender="afterRender"
+    >
       <template #default="{ item, url, index }">
         <div
           class="bg-gray-900 rounded-lg shadow-md overflow-hidden transition-all duration-300 ease-linear hover:shadow-lg hover:shadow-gray-600 group"
@@ -43,7 +44,7 @@
       </template>
     </Waterfall>
 
-    <div v-show="!loading" class="flex justify-center py-10 bg-gray-900">
+    <div v-show="!loading" class="flex justify-center bg-gray-900" style="padding: 2rem 0;">
       <button
         class="px-5 py-2 rounded-full bg-gray-700 text-md text-white cursor-pointer hover:bg-gray-800 transition-all duration-300"
         @click="handleLoadMore">
@@ -133,7 +134,7 @@ function afterRender() {
 const waterfall = ref(null)
 function handleRender() {
   waterfall.value.renderer()
-  // console.log(waterfall.value)
+  console.log(waterfall.value)
 }
 </script>
 

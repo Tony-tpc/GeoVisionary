@@ -20,7 +20,7 @@ const props = defineProps({
   }
 })
 
-function formatTimestamp(timestamp) {
+const formatTimestamp = (timestamp) => {
   const date = new Date(timestamp * 1000); // 转换为毫秒
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0"); // 月份从 0 开始
@@ -32,7 +32,7 @@ function formatTimestamp(timestamp) {
   return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
 }
 
-async function getBilibiliVideoInfo(bvid = "BV1RN4y1f7Hn", p = 1, index) {
+const getBilibiliVideoInfo = async (bvid = "BV1RN4y1f7Hn", p = 1, index) => {
   const apiUrl = `http://localhost:8040/proxy/bilibili/?bvid=${bvid}&p=${p}`;
   try {
     const response = await fetch(apiUrl);
@@ -64,25 +64,25 @@ async function getBilibiliVideoInfo(bvid = "BV1RN4y1f7Hn", p = 1, index) {
 }
 
 // 格式化视频时长（秒 -> mm:ss）
-function formatDuration(seconds) {
+const formatDuration = (seconds) => {
   const min = Math.floor(seconds / 60);
   const sec = seconds % 60;
   return `${min}:${sec.toString().padStart(2, "0")}`;
 }
 
 // 将视频信息渲染到 HTML
-function displayVideoPreview(info,index) {
+const displayVideoPreview = (info,index) => {
   const container = document.getElementById(`bilibili-preview${index}`);
   container.innerHTML = `
     <a href="${info.videoUrl}" target="_blank" style="text-decoration: none; color: inherit;">
         <div style="display: flex; align-items: center; gap: 5px; border: 1px solid #ddd; padding: 5px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);">
-            <img src="http://localhost:8040/proxy/proxy-image?url=${info.cover}" alt="视频封面" width="140" height="90" style="border-radius: 6px;">
+            <img src="http://localhost:8040/proxy/proxy-image/?url=${info.cover}" alt="视频封面" width="140" height="90" style="border-radius: 6px;">
             <div style="flex: 1;">
                 <h3 style="margin: 2px 0; font-size: 14px;">${info.title}</h3>
                 <p style="margin: 2px 0; font-size: 12px;">时长: ${info.duration}</p>
                 <p style="margin: 2px 0; font-size: 12px;">发布时间: ${info.publishTime}</p>
                 <div style="display: flex; align-items: center; gap: 5px;">
-                    <img src="http://localhost:8040/proxy/proxy-image?url=${info.authorAvatar}" alt="作者头像" width="24" height="24" style="border-radius: 50%;">
+                    <img src="http://localhost:8040/proxy/proxy-image/?url=${info.authorAvatar}" alt="作者头像" width="24" height="24" style="border-radius: 50%;">
                     <a href="${info.authorUrl}" target="_blank" class="a-link" style="color: #33aaeb; text-decoration: none; font-weight: bold; font-size: 12px;">
                         ${info.author}
                     </a>

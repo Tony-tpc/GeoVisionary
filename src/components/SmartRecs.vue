@@ -22,20 +22,52 @@
   <!--  推荐页  -->
   <section>
     <div class="container section2" id="section2">
-      <div class="videos-container">
-        <div class="videos-title"></div>
-        <BilibiliVideos :videos="displayVideos" :currentPage="currentPage"></BilibiliVideos>
-        <div class="pagination-block">
-          <el-pagination
-              v-model:current-page="currentPage"
-              :page-size="pageSize"
-              :size="'default'"
-              :disabled="disabled"
-              background
-              layout="total, prev, pager, next, jumper"
-              :total="total"
-              @current-change="handleCurrentChange"
-          />
+      <!--  概要卡片  -->
+      <div class="general-synopsis-container" v-if="data.userChoice !== 'particles' && data.userChoice !== 'videos'">
+        <div class="card" @click="selectContent('particles')">
+          <img src="@/assets/book-opened.jpg" alt="图文" class="card-img" />
+          <img src="@/assets/mountain-river-3D.jpg" alt="山水" class="card-3D-img" />
+          <span class="card-words">图文推荐</span>
+        </div>
+
+        <div class="card" @click="selectContent('videos')">
+          <img src="@/assets/online-lesson.jpg" alt="视频" class="card-img" />
+          <img src="@/assets/videos-3D.jpg" alt="播放" class="card-3D-img" />
+          <span class="card-words">视频推荐</span>
+        </div>
+      </div>
+
+      <div class="information-display">
+        <!--  视频部分  -->
+        <div class="videos-container" v-if="data.userChoice === 'videos'">
+          <div class="videos-title"></div>
+          <BilibiliVideos :videos="displayVideos" :currentPage="currentPage"></BilibiliVideos>
+          <div class="pagination-block">
+            <el-pagination
+                v-model:current-page="currentPage"
+                :page-size="pageSize"
+                :size="'default'"
+                :disabled="disabled"
+                background
+                layout="total, prev, pager, next, jumper"
+                :total="total"
+                @current-change="handleCurrentChange"
+            />
+          </div>
+        </div>
+
+        <!--  图文内容  -->
+        <div class="img-particles-container" v-if="data.userChoice === 'particles'" ref="particlesContainer">
+          <div>
+            <BaiduBaike @update-bg="updateBackground"
+                        :keyword="keywordList"/>
+          </div>
+        </div>
+
+        <div class="reverse-button" v-if="data.userChoice === 'videos' || data.userChoice === 'particles'">
+          <el-button class="circular-button" @click="handleBackButton">
+            <el-icon size="30"><Back /></el-icon>
+          </el-button>
         </div>
       </div>
     </div>
@@ -50,6 +82,7 @@ import ph3 from '@/assets/test/Rec-test-3.jpeg';
 import ph4 from '@/assets/test/Rec-test-4.jpeg';
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { gsap } from "gsap";
+import ColorThief from "colorthief";
 gsap.registerPlugin(ScrollTrigger);
 
 const data = reactive({
@@ -58,6 +91,7 @@ const data = reactive({
     {'bvid': 'BV1RN4y1f7Hn','p': 5},{'bvid': 'BV1RN4y1f7Hn','p': 6},{'bvid': 'BV1RN4y1f7Hn','p': 7},
     {'bvid': 'BV1RN4y1f7Hn','p': 8},{'bvid': 'BV1RN4y1f7Hn','p': 9},{'bvid': 'BV1RN4y1f7Hn','p': 10},
   ], // 视频信息
+  userChoice: '',
 })
 
 const currentPage = ref(1); // 当前页面
@@ -68,9 +102,50 @@ const lastIndex = computed(() => currentPage.value * pageSize.value); // 当前�
 // 展示视频内容
 const displayVideos = computed(() => data.videos.slice(lastIndex.value - pageSize.value, lastIndex.value))
 
+const particlesContainer = ref(null); // 图文容器
+const colorThief = new ColorThief()
+const keywordList = ref(['地理','天文','地形','月相','工业','农业','水循环','GIS'])
+
 // 处理页面切换
 const handleCurrentChange = (val) => {
   currentPage.value = val;
+}
+
+// 选中内容
+const selectContent = async (value) => {
+  await gsap.to('.general-synopsis-container',{opacity: 0})
+  data.userChoice = value;
+  gsap.to('.information-display',{opacity: 1})
+}
+
+// 更新背景
+const updateBackground = async (img) => {
+  if (!img) {
+    particlesContainer.value.style.setProperty("--c1", "#fff");
+    particlesContainer.value.style.setProperty("--c2", "#f0f0f0");
+    particlesContainer.value.style.setProperty("--c3", "#e0e0e0");
+    return;
+  }
+
+  // 确保图片已加载，否则 ColorThief 可能会报错
+  if (!img.complete || img.naturalWidth === 0) return;
+
+  try {
+    const colors = await colorThief.getPalette(img, 3);
+    const [c1, c2, c3] = colors.map(c => `rgb(${c[0]},${c[1]},${c[2]})`);
+    console.log(`${c1}, ${c2}, ${c3}`);
+    particlesContainer.value.style.setProperty("--c1", c1);
+    particlesContainer.value.style.setProperty("--c2", c2);
+    particlesContainer.value.style.setProperty("--c3", c3);
+  } catch (error) {
+    console.error("ColorThief error:", error);
+  }
+};
+
+// 返回上级按钮
+const handleBackButton = async () => {
+  await gsap.to('.information-display',{opacity: 0})
+  data.userChoice = '';
 }
 
 onMounted(() => {
@@ -92,6 +167,24 @@ onMounted(() => {
 </script>
 
 <style scoped>
+/* 在 CSS 最顶部添加 */
+@layer properties {
+  @property --c1 {
+    syntax: "<color>";
+    inherits: false;
+    initial-value: #ffffff;
+  }
+  @property --c2 {
+    syntax: "<color>";
+    inherits: false;
+    initial-value: #f0f0f0;
+  }
+  @property --c3 {
+    syntax: "<color>";
+    inherits: false;
+    initial-value: #e0e0e0;
+  }
+}
 /* 公共容器 */
 .container {
   position: relative;
@@ -144,12 +237,104 @@ onMounted(() => {
   position: absolute;
   top: 100vh;
   left: 0;
-  height: 100vh;
+  min-height: 100vh;
+  height: auto;
 }
 
+.general-synopsis-container {
+  position: absolute;
+  top: calc((100vh - 400px) / 2);
+  left: calc((100vw - 1300px) / 2);
+  display: flex;
+  gap: 50px;
+  justify-content: center;
+}
+
+.card {
+  position: relative;
+  width: 600px;
+  height: 400px;
+  border-radius: 16px;
+  overflow: visible;
+  cursor: pointer;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  background-color: unset;
+  box-shadow: unset;
+}
+
+.card:hover .card-img{
+  transform: perspective(900px) rotateX(25deg);
+  box-shadow: 0 35px 35px -8px rgba(0, 0, 0, 0.75);
+}
+
+.card:hover .card-3D-img {
+  opacity: 1;
+  transform: perspective(900px) translate3d(0, -50px, 50px);
+}
+
+.card:hover .card-words {
+  transform: perspective(900px) translate3d(0, -25px, 50px);
+}
+
+.card-words {
+  position: absolute;
+  bottom: 5%;
+  left: 236px;
+  z-index: 3;
+  transition: all 0.5s ease;
+  color: white;
+  font-size: 32px;
+  font-weight: bold;
+  text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.6);
+}
+
+.card-img,.card-3D-img {
+  position: absolute;
+  width: 600px;
+  height: 400px;
+  object-fit: cover;
+  border-radius: 10px;
+  z-index: 1;
+  transition: all 0.5s ease;
+}
+
+.card-3D-img {
+  width: 300px;
+  height: 200px;
+  z-index: 2;
+  opacity: 0;
+  left: 160px;
+  top: 100px;
+}
+
+/* 视频容器 */
 .videos-container {
   position: relative;
   top: 20%;
+}
+
+/* 图文容器 */
+.img-particles-container {
+  position: relative;
+  width: 100%;
+  min-height: 100vh;
+  background: linear-gradient(var(--c1), var(--c2), var(--c3));
+  transition:
+      --c1 0.5s ease-in-out,
+      --c2 0.5s ease-in-out,
+      --c3 0.5s ease-in-out;
+}
+
+/* 返回按钮 */
+.circular-button {
+  position: fixed;
+  bottom: 10%;
+  right: 5%;
+  z-index: 2;
+  width: 50px;
+  height: 50px;
+  border-radius: 100%;
+  rotate: 0deg;
 }
 
 /* 分页组件 */

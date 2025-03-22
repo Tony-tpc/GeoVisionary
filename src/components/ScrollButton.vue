@@ -36,7 +36,7 @@ onMounted(() => {
   <!--  引导图片  -->
   <div class="continue-div">
     <el-button class="continue-button" @click="scrollToOtherSection">
-      <img src="@/assets/continue.svg" alt="继续" loading="lazy" class="continue-photo"/>
+      <img src="../assets/continue.svg" alt="继续" loading="lazy" class="continue-photo"/>
     </el-button>
   </div>
 </template>

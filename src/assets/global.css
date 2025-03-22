@@ -20,27 +20,27 @@ canvas {
 
 /* 浅色主题（默认） */
 :root {
-    --bg-color: #fffdf3;
-    --text-color: #0d534b;
+    --bg-color: #faf8f5; /* 柔和米白色 */
+    --text-color: #1b4d3e; /* 深绿 */
     --primary-color: rgba(255,253,243,0.5);
     --secondary-color: #3399ff;
-    --border-color: #217c70;
-    --el-menu-bg-color: #fffdf3 !important;
-    --el-menu-text-color: #0d534b !important;
-    --el-menu-hover-bg-color: #d0e3e0 !important;
-    --el-menu-hover-text-color: #0d534b !important;
+    --border-color: #4cae8c; /* 柔和的绿色边框 */
+    --el-menu-bg-color: #ffffff !important; /* 纯白色背景 */
+    --el-menu-text-color: #1b4d3e !important; /* 深绿色字体 */
+    --el-menu-hover-bg-color: #e6f7f1 !important; /* 淡青色悬停背景 */
+    --el-menu-hover-text-color: #1b4d3e !important;
 }
 
 /* 深色主题 */
 .dark-theme {
-    --bg-color: #0d534b;
-    --text-color: #e0e0e0;
+    --bg-color: #164d3b; /* 墨绿色背景 */
+    --text-color: #f0f5f5; /* 柔白色文字 */
     --primary-color: rgba(0,0,0,0.2);
     --secondary-color: #1ebea5;
-    --border-color: #217c70;
-    --el-menu-bg-color: #0d534b;
-    --el-menu-text-color: #e0e0e0;
-    --el-menu-hover-bg-color: #052320 !important;
+    --border-color: #5cbf91; /* 清新的绿色边框 */
+    --el-menu-bg-color: #1f3d33; /* 深绿色菜单背景 */
+    --el-menu-text-color: #f0f5f5; /* 柔白色文字 */
+    --el-menu-hover-bg-color: #2c6a54 !important; /* 亮墨绿悬停背景 */
     --el-menu-hover-text-color: #ffffff;
 }
 
@@ -49,6 +49,16 @@ canvas {
     padding: 10px;
     border-radius: 12px;
     box-shadow: 0 0 8px rgba(0,0,0,.12);
+}
+
+.circular-button {
+    padding: 6px;
+    height: 30px;
+    width: 30px;
+    border-radius: 100%;
+    justify-content: center;
+    align-items: center;
+    rotate: -90deg;
 }
 
 /* 滚动条轨道（背景） */

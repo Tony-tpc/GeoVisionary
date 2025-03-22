@@ -1031,7 +1031,7 @@ onUnmounted(() => {
 }
 
 /* 过渡文字中需要强调的文字 */
-.c1,.c2,.c3,.c4,.c9,.c10,.c12 {
+.c1,.c2,.c3,.c4,.c9,.c10,.c12,p strong {
   color: #f94604;
 }
 
@@ -1057,8 +1057,8 @@ onUnmounted(() => {
   left: 15%;
   font-size: 50px;
   font-weight: bold;
-  color: #0d0f1a; /* 深色标题，提升对比度 */
-  text-shadow: 0 0 8px rgba(0, 0, 0, 0.2); /* 轻微光晕，增加科技感 */
+  color: #0d0f1a;
+  text-shadow: 0 0 8px rgba(0, 0, 0, 0.2);
 }
 
 /* 第二屏副标题 */

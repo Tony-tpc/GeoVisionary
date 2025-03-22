@@ -1,6 +1,6 @@
 {
-  "name": "vue",
-  "version": "0.0.0",
+  "name": "geovisionary",
+  "version": "0.7.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -14,6 +14,7 @@
     "@multiavatar/multiavatar": "^1.0.7",
     "axios": "^1.7.9",
     "canvas-nest.js": "^2.0.4",
+    "colorthief": "^2.6.0",
     "crypto-js": "^4.2.0",
     "dompurify": "^3.2.4",
     "element-plus": "^2.9.3",

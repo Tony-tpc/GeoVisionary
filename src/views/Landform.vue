@@ -13,6 +13,7 @@
   </section>
   <!--  展示页 -->
   <section>
+    <div style="background-color: #2c2e3a;position: absolute;top: 100vh;width: 100%;height: 20vh;"></div>
     <div class="container section2">
       <WaterfallApp />
       <!-- <div style="position:absolute;top: 20%;left: 20%;font-size: 32px;font-weight: bold;color: #0d0f1a;width: 500px;">此处呈现Cesium地形模型</div> -->
@@ -109,10 +110,8 @@ onMounted(() => {
 /* 第二屏 */
 .section2 {
   position: absolute;
-  top: 100vh;
+  top: 110vh;
   left: 0;
-  height: 100vh;
-  overflow-y: auto; /* 启用滚动条 */
-
+  height: auto;
 }
 </style>

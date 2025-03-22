@@ -1,5 +1,23 @@
 <template>
-  <div class="container">
+  <div class="container" ref="particlesContainer">
+<!--    <div class="image-grid">-->
+<!--      <div class="item" v-for="(url ,i) in images">-->
+<!--        <img-->
+<!--          crossorigin="anonymous"-->
+<!--          @mouseenter="handleMouseEnter($event.target,i)"-->
+<!--          @mouseleave="handleMouseLeave"-->
+<!--          :src="url"-->
+<!--          :style="{-->
+<!--            opacity: hoverIndex === -1 ? 1 : i === hoverIndex ? 1 : 0.2,-->
+<!--          }"-->
+<!--        >-->
+<!--      </div>-->
+<!--    </div>-->
+    <div>
+      <BaiduBaike @update-bg="updateBackground"
+                  :keyword="keywordList"/>
+    </div>
+  </div>
 <!--    <el-col :span="6" class="menu-column">-->
 <!--      <h2>试题分类</h2>-->
 <!--      <el-menu-->
@@ -42,7 +60,7 @@
 <!--    <div>-->
 <!--      <LeaderBoard />-->
 <!--    </div>-->
-    <QuestionsDisplay />
+<!--    <QuestionsDisplay />-->
 <!--    <div class="pagination-block">-->
 <!--      <el-pagination-->
 <!--          v-model:current-page="currentPage"-->
@@ -54,7 +72,8 @@
 <!--          @current-change="handleCurrentChange"-->
 <!--      />-->
 <!--    </div>-->
-  </div>
+
+
 
 
 <!--  <div class="container">-->
@@ -117,7 +136,7 @@ import InputBox from "@/components/InputBox.vue";
 // import * as THREE from "three";
 import {gsap} from "gsap";
 import {ScrollTrigger} from "gsap/ScrollTrigger";
-import {method} from "lodash";
+import ColorThief from "colorthief";
 
 gsap.registerPlugin(ScrollTrigger)
 // const currentPage = ref(5)
@@ -142,6 +161,31 @@ const data = reactive({
   // ],
 })
 
+const particlesContainer = ref(null)
+const colorThief = new ColorThief()
+const keywordList = ref(['地理','天文','地形','月相','工业','农业','水循环','GIS'])
+
+const updateBackground = async (img) => {
+  if (!img) {
+    particlesContainer.value.style.setProperty("--c1", "#fff");
+    particlesContainer.value.style.setProperty("--c2", "#f0f0f0");
+    particlesContainer.value.style.setProperty("--c3", "#e0e0e0");
+    return;
+  }
+
+  // 确保图片已加载，否则 ColorThief 可能会报错
+  if (!img.complete || img.naturalWidth === 0) return;
+
+  try {
+    const colors = await colorThief.getPalette(img, 3);
+    const [c1, c2, c3] = colors.map(c => `rgb(${c[0]},${c[1]},${c[2]})`);
+    particlesContainer.value.style.setProperty("--c1", c1);
+    particlesContainer.value.style.setProperty("--c2", c2);
+    particlesContainer.value.style.setProperty("--c3", c3);
+  } catch (error) {
+    console.error("ColorThief error:", error);
+  }
+};
 
 
 // function formatTimestamp(timestamp) {
@@ -547,12 +591,59 @@ onBeforeUnmount( () => {
 </script>
 
 <style scoped>
-
+/* 在 CSS 最顶部添加 */
+@layer properties {
+  @property --c1 {
+    syntax: "<color>";
+    inherits: false;
+    initial-value: #ffffff;
+  }
+  @property --c2 {
+    syntax: "<color>";
+    inherits: false;
+    initial-value: #f0f0f0;
+  }
+  @property --c3 {
+    syntax: "<color>";
+    inherits: false;
+    initial-value: #e0e0e0;
+  }
+}
 .container {
   position: relative;
   width: 100%;
-  height: 100vh;
-  background-color: #fd916a;
+  min-height: 100vh;
+  background: linear-gradient(var(--c1), var(--c2), var(--c3));
+  transition:
+      --c1 0.5s ease-in-out,
+      --c2 0.5s ease-in-out,
+      --c3 0.5s ease-in-out;
+}
+.image-grid {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px; /* 图片之间的间距 */
+  padding-top: 10px;
+  width: 100vw;
+  height: 50vh;
+}
+.item {
+  flex: 0 0 40%;
+  height: 80%;
+  width: 80%;
+}
+img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* 确保图片填充整个区域 */
+  transition: all 0.3s ease-in-out;
+}
+img:hover {
+  transform: scale(1.1);
+  margin-top: 0;
+  border: 5px solid #fffdf3;
+  border-radius: 5px;
 }
 /* 整个菜单栏外框 */
 .menu-column {

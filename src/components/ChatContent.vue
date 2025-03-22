@@ -4,7 +4,7 @@ import { marked } from 'marked'
 import DOMPurify from "dompurify";
 import { computed, ref, reactive, onMounted, onUpdated, watch, onUnmounted } from "vue";
 import hljs from 'highlight.js'
-import 'highlight.js/styles/dark.css'
+import 'highlight.js/styles/github-dark.css'
 
 // 参数
 const props = defineProps({
@@ -87,7 +87,6 @@ const parsedContent = computed(() => {
   try {
     const cleaned = props.content.replace('<think>', '')
     const splitIndex = cleaned.indexOf('</think>')
-    // console.log(`cleaned = ${cleaned},splitIndex = ${splitIndex}`)
 
     if (splitIndex === -1) {
       isThinking.value = true
@@ -103,7 +102,6 @@ const parsedContent = computed(() => {
   } catch (e) {
     console.error('解析错误:', e)
   }
-  // console.log(result.thinking)
   return result
 })
 

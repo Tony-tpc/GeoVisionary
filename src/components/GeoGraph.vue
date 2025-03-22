@@ -108,9 +108,14 @@
     <div class="container section2" id="section2">
       <div class="switch-words">便捷模式</div>
       <div class="switch-mode-container wrapper">
-        <SwitchButton v-model="isActive"
-                      @mouseenter="() => showTooltip('convenient')"
-                      @mouseleave="() => hideTooltip('convenient')"/>
+        <SunMoon v-model="isActive"
+                 @click="isActive = !isActive"
+                 @mouseenter="() => showTooltip('convenient')"
+                 @mouseleave="() => hideTooltip('convenient')"
+                 ball="gradient"
+                 halo="linear"
+                 finish="delay"
+        />
       </div>
       <div id="graph-container" style="width: 100%; height: 90%; border: 1px solid #ddd;position: absolute;top: 10%;"></div>
     </div>
@@ -1178,12 +1183,11 @@ canvas {
 .switch-mode-container {
   position: absolute;
   top: 15%;
-  right: -2%;
+  right: 5.5%;
   z-index: 2;
 }
 .wrapper {
-  transform: scale(0.5);
-  transform-origin: 0 0;
+  scale: 1.5;
 }
 .switch-words {
   position: absolute;
