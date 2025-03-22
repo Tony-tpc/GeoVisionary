@@ -71,6 +71,11 @@
 import { onMounted, ref, computed } from "vue";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { gsap } from "gsap";
+import ScrollButton from "@/components/ScrollButton.vue";
+import SideNavigationBar from "@/components/SideNavigationBar.vue";
+import QuestionsDisplay from "@/components/QuestionsDisplay.vue";
+import LeaderBoard from "@/components/LeaderBoard.vue";
+import Loading from "@/components/Loading.vue"
 gsap.registerPlugin(ScrollTrigger);
 
 const selectedCategory = ref(null); // 选中类别

@@ -1,5 +1,6 @@
 <script setup>
 import { ref } from 'vue'
+import {Close} from "@element-plus/icons-vue";
 const props = defineProps({
   input: {
     type: String,

@@ -5,6 +5,7 @@ import DOMPurify from "dompurify";
 import { computed, ref, reactive, onMounted, onUpdated, watch, onUnmounted } from "vue";
 import hljs from 'highlight.js'
 import 'highlight.js/styles/github-dark.css'
+import {ArrowDown} from "@element-plus/icons-vue";
 
 // 参数
 const props = defineProps({

@@ -1,6 +1,7 @@
 <script setup>
 import { ref } from "vue";
 import { gsap } from "gsap"
+import {Aim, Calendar, Document} from "@element-plus/icons-vue";
 const isCollapsed = ref(true); // 折叠菜单栏
 const emit = defineEmits(["menu-select"]); // 事件初始化
 let selectedItem = ref('');

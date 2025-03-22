@@ -121,8 +121,8 @@ const data = reactive({
   logo: lightLogo,                                // 切换logo配色
   scrollY: 0,                                     // 主题切换判据
   margin: 346,                                    // 导航栏左右边距
-  opacity: 0,                                     // 动态展示模糊效果
 });
+const opacity = ref(0); // 动态展示模糊效果
 
 // 获取当前路由
 const route = useRoute();
@@ -213,7 +213,7 @@ const handleScroll = () => {
   const scrollY = window.scrollY;
   // 根据滚动位置线性调整透明度
   if(data.activeIndex !== '/navigator/world-map') {
-    data.opacity = Math.min(scrollY / 200, 1); // 0 到 100 时透明度从 0 到 1
+    opacity.value = Math.min(scrollY / 200, 1); // 0 到 100 时透明度从 0 到 1
   }
 };
 
@@ -280,7 +280,7 @@ onBeforeUnmount(() => {
   left: 0;
   width: 100%;
   height: 100%;
-  opacity: v-bind(data.opacity);
+  opacity: v-bind(opacity);
   backdrop-filter: blur(10px);
   transition: opacity 0.4s ease;
 }

@@ -35,7 +35,7 @@ const setUser = (response) => {
     localStorage.setItem("user", JSON.stringify(response.user));
     localStorage.setItem("access_token", response.access_token);
     localStorage.setItem("refresh_token", response.refresh_token);
-    localStorage.setItem("isApiavailable", true)
+    localStorage.setItem("isApiavailable", 'true')
 };
 
 // 清除用户信息（退出登录）
@@ -107,7 +107,6 @@ const autoLogin = async () => {
             await refreshAccessToken();
             if (!userState.user) {
                 console.log('令牌已过期，无法自动登录')
-                return;
             }
         } else {
             const userData = {user: data.user, access_token: userState.access_token, refresh_token: userState.refresh_token};

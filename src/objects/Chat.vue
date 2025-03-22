@@ -92,22 +92,22 @@
 </template>
 
 <script setup>
-import { ref, reactive, watch, nextTick, onMounted, onUnmounted } from 'vue'
+import { ref, reactive, nextTick } from 'vue'
 import { marked } from 'marked'
 import hljs from 'highlight.js'
 import 'highlight.js/styles/github.css'
 import { Dome as DomeIcon } from "@icon-park/vue-next"
 import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
-import { userState, setUser } from '@/store/userStore'
+import { userState } from '@/store/userStore'
 gsap.registerPlugin(ScrollTrigger)
 
-const props = defineProps({
-  worldContent: {
-    type: String,
-    required: true
-  }
-})
+// const props = defineProps({
+//   worldContent: {
+//     type: String,
+//     required: true
+//   }
+// })
 // 配置后端地址
 const WS_URL = 'ws://localhost:8040/ws/chat/'
 
@@ -191,7 +191,7 @@ const sendMessage = async (latitude = null, longitude = null) => {
           ws.send(JSON.stringify(payload))
           isNewChat.value = false
         } else {
-          console.error('WebSocket is not open')
+          console.error('WebSocket 未开启')
         }
       }
       else {

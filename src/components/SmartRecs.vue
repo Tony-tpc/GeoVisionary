@@ -83,6 +83,11 @@ import ph4 from '@/assets/test/Rec-test-4.jpeg';
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { gsap } from "gsap";
 import ColorThief from "colorthief";
+import {Back} from "@element-plus/icons-vue";
+import BaiduBaike from "@/components/BaiduBaike.vue";
+import BilibiliVideos from "@/components/BilibiliVideos.vue";
+import ScrollButton from "@/components/ScrollButton.vue";
+import Loading from "@/components/Loading.vue"
 gsap.registerPlugin(ScrollTrigger);
 
 const data = reactive({

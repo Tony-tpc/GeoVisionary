@@ -2,7 +2,6 @@
 import { onMounted, ref } from "vue";
 import { gsap } from "gsap";
 
-let saveScrollPosition;
 const props = defineProps({
   title: {
     type: String,

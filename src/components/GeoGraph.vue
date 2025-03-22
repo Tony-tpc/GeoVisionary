@@ -132,6 +132,12 @@ import { Draggable } from "gsap/Draggable";
 import neo4j from 'neo4j-driver';
 import { Network } from 'vis-network';
 import {userState} from "@/store/userStore.js";
+import {Close, Refresh, Top, ZoomIn, ZoomOut} from "@element-plus/icons-vue";
+import InputBox from "@/components/InputBox.vue";
+import ChatMessages from "@/components/ChatMessages.vue";
+import ScrollButton from "@/components/ScrollButton.vue";
+import SunMoon from "@/components/SunMoon.vue";
+import Loading from "@/components/Loading.vue"
 gsap.registerPlugin(ScrollTrigger,Draggable);
 
 window.PIXI = PIXI;

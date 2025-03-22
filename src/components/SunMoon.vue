@@ -454,12 +454,11 @@
                 .meteor {
                     position: absolute;
                     width: 0.2%;
-                    height: 50px;
                     height: 50%;
                     background: linear-gradient(0deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 1));
                     border-radius: 50%;
                     transform: translate(calc(var(--box-height) * 1.75), calc(var(--box-height) * -0.35)) rotate(255deg);
-                    box-shadow: 0 0 0px rgba(255, 255, 255, 0.8);
+                    box-shadow: 0 0 0 rgba(255, 255, 255, 0.8);
                 }
 
                 .meteor-fall {
