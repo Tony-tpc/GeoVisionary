@@ -100,8 +100,8 @@
         <p class="section2-text">
           通过智能化的<strong>3D 地形</strong>和<strong>星系展示</strong>模型，用户能够亲身体验地理与天文学的奥秘。在虚拟环境中，学生可以随时与<strong>地球地形</strong>交互，观察<strong>月相盈亏的动态变化</strong>，同时探索<strong>太阳系中行星的轨迹与相对位置</strong>。这种互动式的学习方式突破了传统书本和图表的限制，让知识更加<strong>生动直观</strong>，在沉浸式探索中激发学习兴趣，助力学生提升学习效率。
         </p>
-        <img src="@/assets/Landform-test.png" alt="智绘天地" loading="lazy" class="section2-img1"/>
-        <img src="@/assets/Moon-phase-test.png" alt="智绘天地" loading="lazy" class="section2-img2"/>
+        <img src="/models/images/antelope_canyon.jpeg" alt="智绘天地" loading="lazy" class="section2-img1"/>
+        <img src="../assets/home-images/solar.png" alt="智绘天地" loading="lazy" class="section2-img2"/>
       </div>
       <!--    万象图谱介绍  -->
       <div class="page3">
@@ -109,8 +109,8 @@
         <div class="step-item">Step 2: 学习</div>
         <p class="section2-subtitle">结构化知识，AI 助教解答</p>
         <p class="section2-text"><strong>地理知识图谱</strong>通过结构化的方式帮助学生全面理解地理学科的知识体系。借助<strong>AI技术</strong>，我们将复杂的地理学概念和数据组织成图谱，学生可以通过图谱轻松获取相关知识。在学习过程中，<strong>AI助教</strong>会实时解答学生的问题，结合<strong>大数据分析</strong>为学生提供定制化学习路径，帮助学生在最短时间内掌握所需知识。</p>
-        <img src="@/assets/Geo-graph-test.png" alt="万象图谱" loading="lazy" class="section2-img1"/>
-        <img src="@/assets/Geo-graph-test-2.jpeg" alt="万象图谱" loading="lazy" class="section2-img2"/>
+        <img src="../assets/home-images/geo-graph-1.png" alt="万象图谱" loading="lazy" class="section2-img1"/>
+        <img src="../assets/home-images/geo-graph-2.png" alt="万象图谱" loading="lazy" class="section2-img2"/>
       </div>
       <!--    探知问学介绍  -->
       <div class="page4">
@@ -118,8 +118,8 @@
         <div class="step-item">Step 3: 测试</div>
         <p class="section2-subtitle">找到薄弱点，针对性提升</p>
         <p class="section2-text"><strong>智能测评系统</strong>能够实时监控学生的学习进度，分析学生在不同知识点上的掌握程度。当学生进行习题测试时，系统不仅会自动批改，还会针对性地提供详细的解析和学习建议。通过深入分析学生的错误，<strong>AI系统</strong>会帮助学生找出<strong>薄弱环节</strong>，精准定位知识盲区，提供个性化的学习方案，帮助学生快速提升。</p>
-        <img src="@/assets/Insight-lab-test.png" alt="探知问学" loading="lazy" class="section2-img1"/>
-        <img src="@/assets/Insight-lab-test-2.png" alt="探知问学" loading="lazy" class="section2-img2"/>
+        <img src="@/assets/home-images/insight-lab-1.png" alt="探知问学" loading="lazy" class="section2-img1"/>
+        <img src="@/assets/home-images/insight-lab-2.png" alt="探知问学" loading="lazy" class="section2-img2" style="object-fit: cover"/>
       </div>
       <!--    智荐学堂介绍  -->
       <div class="page5">
@@ -127,8 +127,8 @@
         <div class="step-item">Step 4: 巩固</div>
         <p class="section2-subtitle">智能推荐，学习不再盲目</p>
         <p class="section2-text">学习不再是一成不变的重复过程，通过<strong>AI技术</strong>分析学生的学习轨迹，我们能够为每个学生量身定制学习路线。基于学生的学习进度和掌握情况，系统自动推荐<strong>最适合的学习资源</strong>，包括习题、文章、视频等。这样的个性化推荐让学生能够在正确的时间接触到<strong>最有价值的内容</strong>，从而有效巩固所学知识，进一步提升学习效率。</p>
-        <img src="@/assets/Smart-recs-test-1.png" alt="智荐学堂" loading="lazy" class="section2-img1"/>
-        <img src="@/assets/Smart-recs-test-2.png" alt="智荐学堂" loading="lazy" class="section2-img2"/>
+        <img src="@/assets/home-images/smart-recs-1.png" alt="智荐学堂" loading="lazy" class="section2-img1"/>
+        <img src="@/assets/home-images/smart-recs-2.png" alt="智荐学堂" loading="lazy" class="section2-img2"/>
       </div>
       <!--    第二屏与第三屏过渡文字  -->
       <div class="transition-words-2">
@@ -234,7 +234,7 @@ import router from "@/router/index.js";
 import { enableScroll, disableScroll } from "@/store/usefulFunction.js";
 import { ChinesePavilion as PavilionIcon, Local as LocalIcon, Planet as PlanetIcon, Wind as WindIcon,
     Landscape as LandscapeIcon, Water as WaterIcon, Sapling as SaplingIcon, Chimney as ChimneyIcon
-} from "@icon-park/vue-next";// IDE问题，此部分代码均有用
+} from "@icon-park/vue-next";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -1257,6 +1257,8 @@ onUnmounted(() => {
 .buttons-4 {
   width: 90px;
   height: 45px;
-  font-size: 20px;
+  font-size: 19px;
+  font-weight: bold;
+  border-radius: 10px;
 }
 </style>

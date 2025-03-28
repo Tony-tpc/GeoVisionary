@@ -6,7 +6,7 @@
     <!--  正文  -->
     <div class="container section1">
       <!--   背景图   -->
-      <img src="@/assets/test/Quiz-test.jpg" alt="探知问学" loading="lazy" class="background-photo"/>
+      <img src="../assets/insight-images/insight-index-bg.jpg" alt="探知问学" loading="lazy" class="background-photo"/>
       <!--   标题   -->
       <div class="section1-title">
         探知问学
@@ -56,7 +56,7 @@
 
       <!--  试题组件  -->
       <div class="display-question">
-        <QuestionsDisplay :isLoading="isLoading" :questions="questions"/>
+        <QuestionsDisplay :isLoading="isLoading" :questions="questions" @updateAnswer="handleUpdateAnswer" :history-answers="historyAnswers"/>
       </div>
 
       <!--  排行榜  -->
@@ -76,12 +76,14 @@ import SideNavigationBar from "@/components/SideNavigationBar.vue";
 import QuestionsDisplay from "@/components/QuestionsDisplay.vue";
 import LeaderBoard from "@/components/LeaderBoard.vue";
 import Loading from "@/components/Loading.vue"
+import {userState} from "@/store/userStore.js";
 gsap.registerPlugin(ScrollTrigger);
 
 const selectedCategory = ref(null); // 选中类别
 const isLoading = ref(false); // 控制加载
 const questionsResponse = ref([]);
 const questions = computed(() => questionsResponse.value.length > 0 ? questionsResponse.value : []);
+const historyAnswers = ref([]);
 
 // 处理鼠标移入导航栏
 const handleEnterNav = () => {
@@ -96,6 +98,31 @@ const handleLeaveNav = () => {
   // 介绍文字扩张
   if (!selectedCategory.value) {
     gsap.to('.content',{width: '47%',left: '7%'})
+  }
+}
+
+// 处理用户答案更新
+const handleUpdateAnswer = async (data) => {
+  if (Object.values(data).length > 0) {
+    try {
+      const response = await fetch('http://localhost:8040/api/save-history/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          history: data,
+          user: userState.user
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error(response.message)
+      }
+      await response.json()
+    } catch (error) {
+      console.error(error)
+    }
   }
 }
 
@@ -117,14 +144,37 @@ const fetchQuestions = async (selectedItem) => {
     const response = await fetch(`http://localhost:8040/api/exams/?category=${selectedCategory.value}`);
     const data = await response.json();
     questionsResponse.value = data || [];  // 确保 data 至少是空数组
+    await fetchHistoryAnswer();
   } catch (error) {
     console.error("获取题目数据失败", error);
     questionsResponse.value = [];  // 如果请求失败，返回空数组
   } finally {
-    console.log(questions.value);
     isLoading.value = false;  // 只在数据处理完成后再设为 false
   }
 };
+
+const fetchHistoryAnswer = async () => {
+  try {
+    const response = await fetch('http://localhost:8040/api/load-history/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        user: userState.user,
+      })
+    })
+
+    if (!response.ok) {
+      throw new Error(response.message)
+    }
+
+    const data = await response.json();
+    historyAnswers.value = data;
+  } catch (error) {
+    console.error(error)
+  }
+}
 
 onMounted(() => {
   // 视差滚动
@@ -211,7 +261,7 @@ onMounted(() => {
   top: 100vh;
   left: 0;
   height: 100vh;
-  background: url(../src/assets/insight_bg.jpg) center / cover;
+  background: url(../src/assets/insight-images/insight_bg.jpg) center / cover;
 }
 
 /* 中间内容区域 */

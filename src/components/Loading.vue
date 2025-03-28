@@ -52,7 +52,7 @@ onMounted(() => {
   <div v-if="isLoading">
     <!--  加载背景  -->
     <div class="loading-background" id="particles-background"></div>
-    <img src="@/assets/mountain-fffdf3.svg" alt="logo" class="loading-logo" />
+    <img src="../assets/logos/mountain-fffdf3.svg" alt="logo" class="loading-logo" />
   </div>
 </template>
 

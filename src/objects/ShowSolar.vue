@@ -13,13 +13,10 @@ import LoadingProgress from "@/components/LoadingProgress.vue";
 const loading = ref(null);
 const isLoading = ref(true);
 const progress = ref(0);
-console.log(1);
 
 // 定义 onSceneLoad 方法
 const onSceneLoad = () => {
-    console.log(1);
     // loading.value.style.display = 'none'; // 隐藏 loading 屏幕
-
     isLoading.value = false;
 };
 </script>

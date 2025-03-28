@@ -8,7 +8,7 @@
     </div>
   </div>
   <div style="margin: 20px;text-align: center">
-    <el-button type="primary" style="height: 60px;width: 120px" @click="goHome">返回主页</el-button>
+    <el-button type="primary" style="height: 60px;width: 120px;font-size: 18px;font-weight: bold;border-radius: 15px" @click="goHome">返回主页</el-button>
   </div>
 </template>
 

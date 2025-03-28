@@ -91,9 +91,9 @@
   <!--  首页背景图及标题 -->
   <section>
     <div class="container section1">
-      <img src="@/assets/GeoGraph(summary).png" alt="万象图谱" loading="lazy" class="image1">
-      <img src="@/assets/GeoGraph(tourism).png" alt="万象图谱" loading="lazy" class="image2">
-      <img src="@/assets/GeoGraph(disaster).png" alt="万象图谱" loading="lazy" class="image3">
+      <img src="../assets/geograph-images/GeoGraph(summary).png" alt="万象图谱" loading="lazy" class="image1">
+      <img src="../assets/geograph-images/GeoGraph(tourism).png" alt="万象图谱" loading="lazy" class="image2">
+      <img src="../assets/geograph-images/GeoGraph(disaster).png" alt="万象图谱" loading="lazy" class="image3">
     </div>
     <div class="section1-title">
       万象图谱

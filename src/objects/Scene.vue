@@ -35,139 +35,194 @@ export default {
         Options,
         PlanetCard,
     },
-    async mounted(){
-        this.time = Date.now();
+    beforeUnmount() {
+      // 停止动画循环
+      if (this.renderer) {
+        this.renderer.setAnimationLoop(null);
+      }
 
-        // Create scene
-        const scene = this.createScene();
-        const bacakgroundScene = this.createBackgroundScene();
-        const camera = this.createCamera();
-        const renderer = this.createRenderer(scene, camera);
+      // 移除窗口resize监听
+      window.onresize = null;
 
-        this.setupLighting(scene);
+      // 移除canvas事件监听
+      const canvas = this.$refs.canvas;
+      if (canvas) {
+        canvas.removeEventListener("mousemove", this.handleMouseMove);
+        canvas.removeEventListener("mousedown", this.handleMouseDown);
+        canvas.removeEventListener("mouseup", this.handleMouseUp);
+      }
 
-        const controls = this.createControls(camera, renderer);
+      // 销毁控制器
+      if (this.controls) {
+        this.controls.dispose();
+      }
 
-        const planets = await this.createSolarSystem(scene);
+      // 清理渲染器
+      if (this.renderer) {
+        this.renderer.dispose();
+        const gl = this.renderer.domElement.getContext('webgl');
+        gl && gl.getExtension('WEBGL_lose_context')?.loseContext();
+        this.renderer.forceContextLoss();
+        this.renderer.domElement = null;
+      }
 
-        const clock = new THREE.Clock();
+      // 清理场景资源的方法
+      const disposeScene = (scene) => {
+        if (!scene) return;
 
-        const mouse = new THREE.Vector2();
-
-        const raycaster = new THREE.Raycaster();
-
-        THREE.Object3D.prototype.tick = (e) => {}
-
-        let hoverObject = {
-            planet: null,
-            outline: null,
-        };
-
-        let selectedPlanet = null;
-
-        let clickedPlanet = null;
-        
-        renderer.autoClear = false;
-        camera.layers.enable(1);
-
-        renderer.setAnimationLoop(() => {
-            // Update planets
-            let delta = clock.getDelta();
-            for(let planet of planets){
-                planet.tick(delta);
+        scene.traverse(child => {
+          if (child.isMesh) {
+            child.geometry.dispose();
+            if (child.material) {
+              if (Array.isArray(child.material)) {
+                child.material.forEach(m => m.dispose());
+              } else {
+                child.material.dispose();
+              }
             }
-            // Make cameara follow selected planet
-            if(selectedPlanet) {
-                selectedPlanet.children[0].getWorldPosition(controls.target);
-            }
-            controls.update();
-            
-            // Planet hover effect
-            raycaster.setFromCamera(mouse, camera);
-            const intersects = raycaster.intersectObjects(planets, true);
-            if (intersects.length > 0 && hoverObject.planet == null) {
-                hoverObject.planet = intersects[0].object;
-                hoverObject.outline = this.highlightPlanet(intersects[0].object);
-            }
-            else if(intersects.length > 0 && hoverObject.planet !== intersects[0].object) {
-                this.unhighlightPlanet(hoverObject.planet);
-                hoverObject.planet = intersects[0].object;
-                hoverObject.outline = this.highlightPlanet(intersects[0].object);
-            }
-            else if(intersects.length === 0 && hoverObject.planet != null) {
-                this.unhighlightPlanet(hoverObject.planet);
-                hoverObject.planet = null;
-                hoverObject.outline = null;
-            }
+          }
+          // 清理纹理等其他资源
+          if (child.texture) child.texture.dispose();
+        });
+        scene.children = [];
+      };
 
-            // Update time
-            if(!this.idealizedSpeed) this.time += this.speed * 1000 * delta;
+      // 清理主场景和背景场景
+      disposeScene(this.scene);
+      disposeScene(this.backgroundScene);
 
-            renderer.clear();
-            camera.layers.set(1);
-            renderer.render(bacakgroundScene, camera);
-            renderer.render(scene, camera);
+      // 释放引用
+      this.scene = null;
+      this.backgroundScene = null;
+      this.camera = null;
+      this.renderer = null;
+      this.controls = null;
+    },
+    async mounted() {
+      this.time = Date.now();
 
-            camera.layers.set(0);
-            renderer.render(scene, camera);
-        })
+      // 保存关键引用到组件实例
+      this.scene = this.createScene();
+      this.backgroundScene = this.createBackgroundScene();
+      this.camera = this.createCamera();
+      this.renderer = this.createRenderer(this.scene, this.camera);
 
-        // Resize renderer when window size changes 
-        window.onresize = () => {
-            // Update renderer
-            this.resizeRenderer(renderer);
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
+      this.setupLighting(this.scene);
+
+      this.controls = this.createControls(this.camera, this.renderer);
+      this.clock = new THREE.Clock();
+      this.mouse = new THREE.Vector2();
+      this.raycaster = new THREE.Raycaster();
+
+      // 初始化状态相关引用
+      this.hoverObject = { planet: null, outline: null };
+      this.selectedPlanet = null;
+      this.clickedPlanet = null;
+
+      // 保存事件处理器引用
+      this.handleMouseMove = (e) => {
+        e.preventDefault();
+        this.mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+        this.mouse.y = - (e.clientY / window.innerHeight) * 2 + 1;
+      };
+
+      this.handleMouseDown = (e) => {
+        this.mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+        this.mouse.y = - (e.clientY / window.innerHeight) * 2 + 1;
+
+        if (this.hoverObject.planet != null) {
+          const planet = this.findMeshPlanet(this.hoverObject.planet);
+          if (planet) this.clickedPlanet = planet.name;
+        }
+      };
+
+      this.handleMouseUp = (e) => {
+        if (!this.clickedPlanet) return;
+        this.mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+        this.mouse.y = - (e.clientY / window.innerHeight) * 2 + 1;
+
+        if (this.hoverObject.planet != null) {
+          const planet = this.findMeshPlanet(this.hoverObject.planet);
+          if (planet.name !== this.clickedPlanet) {
+            this.clickedPlanet = null;
+            return;
+          }
+          if (planet.name === "sun") {
+            this.controls.minDistance = 60;
+            this.controls.maxDistance = 500;
+            this.controls.target.set(0, 0, 0);
+          } else {
+            let box = new THREE.Box3().setFromObject(planet.children[0].children[0]);
+            let diameter = Math.abs(box.max.x - box.min.x);
+            this.controls.minDistance = diameter * 1.25;
+            this.controls.maxDistance = diameter * 2.5;
+          }
+          this.selectedPlanetCard = planet.userData;
+          this.selectedPlanet = planet;
+          this.clickedPlanet = null;
+        }
+      };
+
+      // 添加事件监听器
+      this.$refs.canvas.addEventListener("mousemove", this.handleMouseMove);
+      this.$refs.canvas.addEventListener("mousedown", this.handleMouseDown);
+      this.$refs.canvas.addEventListener("mouseup", this.handleMouseUp);
+
+      // 初始化太阳系
+      this.planets = await this.createSolarSystem(this.scene);
+
+      // 配置渲染循环
+      this.renderer.autoClear = false;
+      this.camera.layers.enable(1);
+
+      this.renderer.setAnimationLoop(() => {
+        let delta = this.clock.getDelta();
+        for (let planet of this.planets) {
+          planet.tick(delta);
         }
 
-        this.$refs.canvas.addEventListener("mousemove", (e) => {
-	        e.preventDefault();
+        if (this.selectedPlanet) {
+          this.selectedPlanet.children[0].getWorldPosition(this.controls.target);
+        }
+        this.controls.update();
 
-            mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
-            mouse.y = - (e.clientY / window.innerHeight) * 2 + 1;
-        });
+        this.raycaster.setFromCamera(this.mouse, this.camera);
+        const intersects = this.raycaster.intersectObjects(this.planets, true);
 
-        this.$refs.canvas.addEventListener("mousedown", (e) => {
-            mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
-            mouse.y = - (e.clientY / window.innerHeight) * 2 + 1;
+        // Hover 处理逻辑...
+        if (intersects.length > 0 && this.hoverObject.planet == null) {
+          this.hoverObject.planet = intersects[0].object;
+          this.hoverObject.outline = this.highlightPlanet(intersects[0].object);
+        } else if (intersects.length > 0 && this.hoverObject.planet !== intersects[0].object) {
+          this.unhighlightPlanet(this.hoverObject.planet);
+          this.hoverObject.planet = intersects[0].object;
+          this.hoverObject.outline = this.highlightPlanet(intersects[0].object);
+        } else if (intersects.length === 0 && this.hoverObject.planet != null) {
+          this.unhighlightPlanet(this.hoverObject.planet);
+          this.hoverObject.planet = null;
+          this.hoverObject.outline = null;
+        }
 
-            if (hoverObject.planet != null) {
-                const planet = this.findMeshPlanet(hoverObject.planet);
-                if(planet) clickedPlanet = planet.name;
-            }
-        });
+        if (!this.idealizedSpeed) this.time += this.speed * 1000 * delta;
 
-        this.$refs.canvas.addEventListener("mouseup", (e) => {
-            if(!clickedPlanet) return;
-            mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
-            mouse.y = - (e.clientY / window.innerHeight) * 2 + 1;
+        this.renderer.clear();
+        this.camera.layers.set(1);
+        this.renderer.render(this.backgroundScene, this.camera);
+        this.renderer.render(this.scene, this.camera);
 
-            if (hoverObject.planet != null) {
-                const planet = this.findMeshPlanet(hoverObject.planet);
-                if(planet.name !== clickedPlanet) {
-                    clickedPlanet = null; 
-                    return;
-                }
-                // Set default distance and target to sun
-                if(planet.name === "sun") { 
-                    controls.minDistance = 60;
-                    controls.maxDistance = 500;
-                    controls.target.set(0, 0, 0);
-                }
-                // Change min/max camera distance to suit given planet
-                else {
-                    let box = new THREE.Box3().setFromObject(planet.children[0].children[0]);
-                    let diameter = Math.abs(box.max.x - box.min.x);
-                    controls.minDistance = diameter * 1.25;
-                    controls.maxDistance = diameter * 2.5;
-                }
-                this.selectedPlanetCard = planet.userData;
-                selectedPlanet = planet;
-                clickedPlanet = null;
-            }
-        });
+        this.camera.layers.set(0);
+        this.renderer.render(this.scene, this.camera);
+      });
 
-        this.$emit('onSceneLoad');
+      // 窗口resize处理
+      this.handleResize = () => {
+        this.resizeRenderer(this.renderer);
+        this.camera.aspect = window.innerWidth / window.innerHeight;
+        this.camera.updateProjectionMatrix();
+      };
+      window.addEventListener('resize', this.handleResize);
+
+      this.$emit('onSceneLoad');
     },
     methods: {
         // Look through list of all planets and initialize them
@@ -179,7 +234,7 @@ export default {
                 let gltf = await loader.loadAsync(`/assets/gltf/${planet.name}.glb`);
                 let updateObject;
                 let userData = this.getUserDataFor(planet);
-                // Get the object the planet is orbitting
+                // Get the object the planet that is orbiting
                 if(planet.orbitObject != null) {
                     let orbitObject = this.findOrbitObject(planets, planet.orbitObject);
                     gltf.scene.position.z = planet.scaledOrbitalRadius;
@@ -295,7 +350,7 @@ export default {
                 ? (planet.userData.planetCircumference * e * 0.1)
                 : (planet.userData.rotationVelocity * e) * this.speed;
                 let rY = planet.userData.currentRotation / planet.userData.planetCircumference * Math.PI * 2;
-                // Find the Group that holds the Meshes and roatate it
+                // Find the Group that holds the Meshes and rotate it
                 if(planet.userData.isPivot){
                     planet.children[0].children[0].rotation.y = rY;
                 }
@@ -309,7 +364,7 @@ export default {
 
             return scene;
         },
-        // Create and cofigure camera and return it 
+        // Create and configure camera and return it
         createCamera: function () { 
             const camera = new THREE.PerspectiveCamera(47, window.innerWidth / window.innerHeight, 0.1, 1000);
 
@@ -386,7 +441,7 @@ export default {
             lensflare.addElement( new LensflareElement(textureFlare1, 40));
             pointLight.add(lensflare);
 
-            // Lights used to bright up the sun
+            // Lights used to brighten up the sun
             const rectLight1 = new THREE.RectAreaLight(0xffffff, 7, 20, 25);
             rectLight1.position.set(-12, 0, 0);
             rectLight1.lookAt(0, 0, 0)
@@ -509,11 +564,12 @@ export default {
     }
     .date-display {
         position: absolute;
-        top: 0;
+        top: 10%;
         left: 0;
         padding: 1em;
         display: flex;
         gap: 8px;
+        color: #f2f6ff;
         &.disabled{
             opacity: 0.2;
         }

@@ -211,10 +211,10 @@
 <script setup>
 import {reactive} from "vue";
 import {Calendar, Search} from "@element-plus/icons-vue";
-import imgSrc from '@/assets/logo.png'
-import lun1 from '@/assets/logo.png'
-import lun2 from '@/assets/logo.png'
-import lun3 from '@/assets/logo.png'
+import imgSrc from '@/assets/test/logo.png'
+import lun1 from '@/assets/test/logo.png'
+import lun2 from '@/assets/test/logo.png'
+import lun3 from '@/assets/test/logo.png'
 import router from "@/router/index.js";
 import axios from "axios";
 

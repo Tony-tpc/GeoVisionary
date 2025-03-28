@@ -54,6 +54,7 @@ export default {
         .form-group {
             margin: 15px 5px;
             text-align: center;
+            color: var(--text);
             > label {
                 font-size: 18px;
             }
@@ -74,6 +75,7 @@ export default {
                     appearance: none;
                     &:checked + label {
                         background-color: var(--tertiary);
+                        color: #F8F9FF;
                     }
                 }
                 label {

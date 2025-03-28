@@ -110,8 +110,8 @@ import { User } from "@element-plus/icons-vue";
 import router from "@/router/index.js";
 import { useRoute } from "vue-router";
 import { userState, isLoggedIn, clearUser, autoLogin } from "@/store/userStore";
-import lightLogo from "@/assets/mountain-fffdf3.svg";
-import darkLogo from "@/assets/mountain-0d534b.svg";
+import lightLogo from "@/assets/logos/mountain-fffdf3.svg";
+import darkLogo from "@/assets/logos/mountain-0d534b.svg";
 import { throttle } from "lodash";
 import { gsap } from "gsap";
 
@@ -198,7 +198,6 @@ const checkAnimationCondition = async (path) => {
   const scrollTop = localStorage.getItem('scrollPosition');
   const needLoading = path === '/navigator/smart-recs' || path === '/navigator/insight-lab' || path === '/navigator/geo-graph'
   const noNeedLoading = path === '/navigator/landform' || path === '/navigator/moon-phase' || path === '/navigator/galaxy' || path === '/navigator/world-map'
-  console.log(`scrollTop = ${scrollTop}`);
   if (!noNeedLoading && (scrollTop === '0' || needLoading)) {
     showAnimation.value = true;
     loadAnimation()

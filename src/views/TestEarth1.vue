@@ -13,10 +13,10 @@
 <!--        >-->
 <!--      </div>-->
 <!--    </div>-->
-    <div>
-      <BaiduBaike @update-bg="updateBackground"
-                  :keyword="keywordList"/>
-    </div>
+<!--    <div>-->
+<!--      <BaiduBaike @update-bg="updateBackground"-->
+<!--                  :keyword="keywordList"/>-->
+<!--    </div>-->
   </div>
 <!--    <el-col :span="6" class="menu-column">-->
 <!--      <h2>试题分类</h2>-->

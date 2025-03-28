@@ -17,7 +17,6 @@ const props = defineProps({
 })
 
 const scrollToOtherSection = () => {
-  console.log('props.sectionName', props.sectionName);
   gsap.to(window,{
     scrollTo:props.sectionName,
     duration:0.8,

@@ -89,6 +89,7 @@ export default {
         box-shadow: -8px -9px 14px rgb(255 255 255 / 8%);
         overflow: hidden;
         font-size: 14px;
+        color: var(--text);
         .planet-img{
             width: 100%;
             position: absolute;
@@ -165,6 +166,7 @@ export default {
         }
         .description {
             margin: 6px 0;
+            opacity: 0.9;
         }
     }
     @media (max-width: 560px) {

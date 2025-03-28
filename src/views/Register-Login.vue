@@ -124,6 +124,8 @@ import { ref, onMounted, onBeforeUnmount, reactive, computed } from 'vue';
 import { gsap } from "gsap";
 import router from "@/router/index.js";
 import { setUser } from '../store/userStore.js'
+import * as THREE from 'three'
+import GLOBE from 'vanta/dist/vanta.globe.min'
 
 const data = reactive({
   isDisabled: false,
@@ -139,21 +141,20 @@ const vantaEffect = ref(null);
 const vantaSection = ref(null);
 
 const setVanta = () => {
-  if (window.VANTA) {
-    vantaEffect.value = window.VANTA.GLOBE({
-      el: vantaSection.value,
-      mouseControls: true,
-      touchControls: true,
-      gyroControls: false,
-      minHeight: 200.00,
-      minWidth: 200.00,
-      scale: 1.00,
-      scaleMobile: 1.00,
-      color: 0xd1174f,
-      size: 0.9,
-      backgroundColor: 0x251444,
-    });
-  }
+  vantaEffect.value = GLOBE({
+    el: vantaSection.value,
+    THREE: THREE,
+    mouseControls: true,
+    touchControls: true,
+    gyroControls: false,
+    minHeight: 200.00,
+    minWidth: 200.00,
+    scale: 1.00,
+    scaleMobile: 1.00,
+    color: 0xd1174f,
+    size: 0.9,
+    backgroundColor: 0x251444
+  })
 };
 
 // 注册表单信息

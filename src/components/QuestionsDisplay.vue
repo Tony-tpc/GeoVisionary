@@ -21,7 +21,23 @@
       <!--  题目图片（如果存在）  -->
       <h3>{{ currentQuestion.description !== undefined ? currentQuestion.description : currentQuestion.question }}</h3>
       <h2>
-        <img v-if="currentQuestion.image" :src="processImageUrl(currentQuestion.image)" @click="openImage(currentQuestion.image)" />
+        <el-image v-if="currentQuestion.image"
+                  :src="processImageUrl(currentQuestion.image)"
+                  :preview-src-list="processSrcList(currentQuestion.image)"
+                  :min-scale="0.5"
+                  :max-scale="5"
+                  show-progress
+                  fit="cover"
+                  hide-on-click-modal
+                  @wheel="handleWheel"
+                  class="question-image"
+        >
+          <template #error>
+            <div class="image-slot">
+              <el-icon><icon-picture /></el-icon>
+            </div>
+          </template>
+        </el-image>
       </h2>
 
       <!-- 如果是大题，循环渲染子题 -->
@@ -191,13 +207,33 @@
         </template>
       </el-dialog>
     </div>
+
+    <div class="has-answered-prompt">
+      <el-dialog
+          v-model="dialog2Visible"
+          title="提示"
+          width="500"
+          :before-close="handleClose2"
+      >
+        <span>这道题您已经做过了哦！虽然您可以反复操练，不过不再有积分累计哟！</span>
+        <template #footer>
+          <div class="dialog-footer">
+            <el-button @click="dialog2Visible = false">关闭</el-button>
+            <el-button type="primary" @click="dialog2Visible = false">
+              确认
+            </el-button>
+          </div>
+        </template>
+      </el-dialog>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue';
+import {computed, onMounted, ref, watch} from 'vue';
 import {gsap} from "gsap";
-import { ElMessageBox } from 'element-plus'
+import {ElMessageBox} from 'element-plus'
+import { Picture as IconPicture } from '@element-plus/icons-vue'
 // 传入参数
 const props = defineProps({
   questions: {
@@ -207,8 +243,13 @@ const props = defineProps({
   isLoading: {
     type: Boolean,
     default: false
+  },
+  historyAnswers: {
+    type: Array,
+    default: [],
   }
 })
+const emit = defineEmits(["updateAnswer"]); // 更新用户答案事件
 
 const defaultQuestion = [
   {
@@ -258,7 +299,7 @@ const defaultQuestion = [
   },
   {
     id: 10, description: "苏州工业园区是中国和新加坡两国政府间的重要合作项目。图1示意苏州工业园区中的中新合作区1994-2000年实施的功能区布局规划。规划思路是通过基础设施建设，优先开发工业用地；当人口集聚到一定规模后，加大开发居住用地；当人口进一步集聚后，再重点开发商业用地。据此完成下面小题。",
-    image: '../src/assets/test/img.png',
+    image: '../../src/assets/test/question-img.png',
     sub_questions: [
       {
         id: "10-1",
@@ -301,7 +342,9 @@ const currentPage = ref(0); // 页码十位
 const submitted = ref(false); // 是否提交
 const selectedOptions = ref({}); // 选中选项内容
 const userAnswers = ref({}) // 用户回答对象
+const historyAnswers = ref(props.historyAnswers) // 用户历史回答记录
 const dialogVisible = ref(false) // 是否显示对话框
+const dialog2Visible = ref(false)
 const total = computed(() => questions.value.length) // 总题数
 const pageSize = ref(10) // 每页题数
 
@@ -465,6 +508,13 @@ const submitAnswer = () => {
       userAnswers.value[currentIndex.value][subQ.id] = {
         selected: [...selectedKeys], // 记录选项
         correct: isCorrect, // 记录对错
+        question: subQ.question,
+        hasAnswered: false,
+      }
+      const existingRecord = historyAnswers.value.find(h => h.problem.question === subQ.question);
+      if (existingRecord) {
+        userAnswers.value[currentIndex.value][subQ.id].hasHistory = true;
+        dialog2Visible.value = true;
       }
     })
   } else {
@@ -475,9 +525,16 @@ const submitAnswer = () => {
     userAnswers.value[currentIndex.value] = {
       selected: [...selectedKeys], // 记录选项
       correct: isCorrect, // 记录对错
+      question: currentQuestion.value.question,
+      hasAnswered: false,
     };
+    // 单题判断
+    const existingRecord = historyAnswers.value.find(h => h.problem.question === currentQuestion.value.question);
+    if (existingRecord) {
+      userAnswers.value[currentIndex.value].hasHistory = true;
+      dialog2Visible.value = true;
+    }
   }
-  console.log(userAnswers.value)
   submitted.value = true;
   displayExplanation();
 };
@@ -584,10 +641,20 @@ const processImageUrl = (url) => {
   return 'http://localhost:8040' + url;
 }
 
-// 放大图片
-const openImage = (imageURL) => {
-
+// 处理预览图片列表
+const processSrcList = (url) => {
+  const processedUrl = 'http://localhost:8040' + url;
+  const srcList = [];
+  srcList.push(processedUrl);
+  return srcList;
 }
+
+// 解决滚动滚轮时页面跟随滚动问题
+const handleWheel = (event) => {
+  if (document.querySelector('.el-image-viewer__wrapper')) {
+    event.preventDefault(); // 阻止页面滚动
+  }
+};
 
 // 关闭对话框
 const handleClose = (done) => {
@@ -598,6 +665,9 @@ const handleClose = (done) => {
       .catch(() => {
         console.log('对话框组件出现错误')
       })
+}
+const handleClose2 = (done) => {
+  done();
 }
 
 onMounted(() => {
@@ -613,6 +683,8 @@ watch(() => props.isLoading, () => {
     }
     currentIndex.value = 0;
     currentPage.value = 0;
+    emit('updateAnswer', userAnswers.value);
+    historyAnswers.value = props.historyAnswers;
     userAnswers.value = {};
     selectedOptions.value = {};
     submitted.value = false;
@@ -753,19 +825,18 @@ watch(() => props.isLoading, () => {
 }
 
 /* 题目图片 */
-.question img {
+.question-image {
   max-width: 100%;
-  height: auto;
+  min-width: 60px;
+  min-height: 45px;
   border-radius: 8px;
   box-shadow: 2px 4px 8px rgba(0, 0, 0, 0.2);
   cursor: pointer;
   transition: transform 0.3s ease-in-out, box-shadow 0.3s;
 }
-
-/* 悬停放大 */
-.question img:hover {
-  transform: scale(1.05);
-  box-shadow: 4px 8px 12px rgba(0, 0, 0, 0.3);
+.image-slot {
+  position: relative;
+  top: 10px;
 }
 
 /* 单选/多选容器 */

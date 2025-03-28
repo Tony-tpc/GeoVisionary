@@ -3,7 +3,7 @@
     <!--  头部开始  -->
     <div style="height: 60px;background-color: #40a2f6;display: flex;align-items: center">
       <div style="margin-left:20px;width: 200px;display:flex;align-items: center">
-        <img style="width: 40px" src="../../assets/re-data.png" alt="logo">
+        <img style="width: 40px" src="../../assets/test/re-data.png" alt="logo">
         <span style="font-size: 20px;color: white;margin-left: 5px">后台管理系统</span>
       </div>
       <div style="flex: 1"></div>

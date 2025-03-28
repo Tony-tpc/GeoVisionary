@@ -23,23 +23,24 @@
   <section>
     <div class="container section2" id="section2">
       <!--  概要卡片  -->
-      <div class="general-synopsis-container" v-if="data.userChoice !== 'particles' && data.userChoice !== 'videos'">
-        <div class="card" @click="selectContent('particles')">
-          <img src="@/assets/book-opened.jpg" alt="图文" class="card-img" />
-          <img src="@/assets/mountain-river-3D.jpg" alt="山水" class="card-3D-img" />
+      <div class="general-synopsis-container" v-if="data.userChoice !== 'articles' && data.userChoice !== 'videos'">
+        <div class="card" @click="selectContent('articles')">
+          <img src="../assets/smart-images/book-opened.jpg" alt="图文" class="card-img" />
+          <img src="../assets/smart-images/mountain-river-3D.jpg" alt="山水" class="card-3D-img" />
           <span class="card-words">图文推荐</span>
         </div>
 
         <div class="card" @click="selectContent('videos')">
-          <img src="@/assets/online-lesson.jpg" alt="视频" class="card-img" />
-          <img src="@/assets/videos-3D.jpg" alt="播放" class="card-3D-img" />
+          <img src="../assets/smart-images/online-lesson.jpg" alt="视频" class="card-img" />
+          <img src="../assets/smart-images/videos-3D.jpg" alt="播放" class="card-3D-img" />
           <span class="card-words">视频推荐</span>
         </div>
       </div>
 
       <div class="information-display">
         <!--  视频部分  -->
-        <div class="videos-container" v-if="data.userChoice === 'videos'">
+        <div class="videos-container" v-if="data.userChoice === 'videos'"
+             @click="logActivity('click','video')">
           <div class="videos-title"></div>
           <BilibiliVideos :videos="displayVideos" :currentPage="currentPage"></BilibiliVideos>
           <div class="pagination-block">
@@ -57,14 +58,15 @@
         </div>
 
         <!--  图文内容  -->
-        <div class="img-particles-container" v-if="data.userChoice === 'particles'" ref="particlesContainer">
+        <div class="img-articles-container" v-if="data.userChoice === 'articles'" ref="articlesContainer"
+             @click="logActivity('click','article')">
           <div>
             <BaiduBaike @update-bg="updateBackground"
                         :keyword="keywordList"/>
           </div>
         </div>
 
-        <div class="reverse-button" v-if="data.userChoice === 'videos' || data.userChoice === 'particles'">
+        <div class="reverse-button" v-if="data.userChoice === 'videos' || data.userChoice === 'articles'">
           <el-button class="circular-button" @click="handleBackButton">
             <el-icon size="30"><Back /></el-icon>
           </el-button>
@@ -75,7 +77,7 @@
 </template>
 
 <script setup>
-import {reactive, onMounted, ref, computed} from "vue";
+import { reactive, onMounted, ref, computed } from "vue";
 import ph1 from '@/assets/test/Rec-test-1.jpeg';
 import ph2 from '@/assets/test/Rec-test-2.jpeg';
 import ph3 from '@/assets/test/Rec-test-3.jpeg';
@@ -83,16 +85,21 @@ import ph4 from '@/assets/test/Rec-test-4.jpeg';
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { gsap } from "gsap";
 import ColorThief from "colorthief";
-import {Back} from "@element-plus/icons-vue";
+import { Back } from "@element-plus/icons-vue";
 import BaiduBaike from "@/components/BaiduBaike.vue";
 import BilibiliVideos from "@/components/BilibiliVideos.vue";
 import ScrollButton from "@/components/ScrollButton.vue";
 import Loading from "@/components/Loading.vue"
+import { logActivity } from "@/store/usefulFunction.js";
+
 gsap.registerPlugin(ScrollTrigger);
 
 const data = reactive({
   carouselItems:[ph1,ph2,ph3,ph4], // 轮播图
   videos:[{'bvid': 'BV1RN4y1f7Hn','p': 2},{'bvid': 'BV1RN4y1f7Hn','p': 3},{'bvid': 'BV1RN4y1f7Hn','p': 4},
+    {'bvid': 'BV1RN4y1f7Hn','p': 5},{'bvid': 'BV1RN4y1f7Hn','p': 6},{'bvid': 'BV1RN4y1f7Hn','p': 7},
+    {'bvid': 'BV1RN4y1f7Hn','p': 8},{'bvid': 'BV1RN4y1f7Hn','p': 9},{'bvid': 'BV1RN4y1f7Hn','p': 10},
+    {'bvid': 'BV1RN4y1f7Hn','p': 2},{'bvid': 'BV1RN4y1f7Hn','p': 3},{'bvid': 'BV1RN4y1f7Hn','p': 4},
     {'bvid': 'BV1RN4y1f7Hn','p': 5},{'bvid': 'BV1RN4y1f7Hn','p': 6},{'bvid': 'BV1RN4y1f7Hn','p': 7},
     {'bvid': 'BV1RN4y1f7Hn','p': 8},{'bvid': 'BV1RN4y1f7Hn','p': 9},{'bvid': 'BV1RN4y1f7Hn','p': 10},
   ], // 视频信息
@@ -102,12 +109,12 @@ const data = reactive({
 const currentPage = ref(1); // 当前页面
 const disabled = ref(false); // 禁用分页
 const total = ref(data.videos.length); // 视频总数量
-const pageSize = ref(4); // 页面视频数量
+const pageSize = ref(16); // 页面视频数量
 const lastIndex = computed(() => currentPage.value * pageSize.value); // 当前页最后一个视频下标（不包括）
 // 展示视频内容
 const displayVideos = computed(() => data.videos.slice(lastIndex.value - pageSize.value, lastIndex.value))
 
-const particlesContainer = ref(null); // 图文容器
+const articlesContainer = ref(null); // 图文容器
 const colorThief = new ColorThief()
 const keywordList = ref(['地理','天文','地形','月相','工业','农业','水循环','GIS'])
 
@@ -126,9 +133,9 @@ const selectContent = async (value) => {
 // 更新背景
 const updateBackground = async (img) => {
   if (!img) {
-    particlesContainer.value.style.setProperty("--c1", "#fff");
-    particlesContainer.value.style.setProperty("--c2", "#f0f0f0");
-    particlesContainer.value.style.setProperty("--c3", "#e0e0e0");
+    articlesContainer.value.style.setProperty("--c1", "#fff");
+    articlesContainer.value.style.setProperty("--c2", "#f0f0f0");
+    articlesContainer.value.style.setProperty("--c3", "#e0e0e0");
     return;
   }
 
@@ -138,10 +145,9 @@ const updateBackground = async (img) => {
   try {
     const colors = await colorThief.getPalette(img, 3);
     const [c1, c2, c3] = colors.map(c => `rgb(${c[0]},${c[1]},${c[2]})`);
-    console.log(`${c1}, ${c2}, ${c3}`);
-    particlesContainer.value.style.setProperty("--c1", c1);
-    particlesContainer.value.style.setProperty("--c2", c2);
-    particlesContainer.value.style.setProperty("--c3", c3);
+    articlesContainer.value.style.setProperty("--c1", c1);
+    articlesContainer.value.style.setProperty("--c2", c2);
+    articlesContainer.value.style.setProperty("--c3", c3);
   } catch (error) {
     console.error("ColorThief error:", error);
   }
@@ -314,12 +320,14 @@ onMounted(() => {
 
 /* 视频容器 */
 .videos-container {
-  position: relative;
-  top: 20%;
+  position: absolute;
+  top: 15%;
+  width: 100%;
+  max-height: 100vh;
 }
 
 /* 图文容器 */
-.img-particles-container {
+.img-articles-container {
   position: relative;
   width: 100%;
   min-height: 100vh;
