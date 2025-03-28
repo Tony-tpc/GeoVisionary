@@ -1,20 +1,16 @@
-import json
 import os
+import time
 
-import httpx
 import requests
-from django.http import HttpResponse, JsonResponse, StreamingHttpResponse, HttpRequest
-from django.utils.encoding import force_bytes
-from django.views.decorators.cache import never_cache
-from django.views.decorators.csrf import csrf_exempt
+from django.http import HttpResponse, JsonResponse
 from dotenv import load_dotenv
 from rest_framework.decorators import api_view
-import asyncio
-from .websocket_client import send_to_tts
 
 load_dotenv()
 DS_MODEL = os.environ.get("DS_MODEL")
 DS_KEY = os.environ.get("DS_KEY")
+BAIDU_Key = os.environ.get("BAIDU_KEY")
+Trefle_Key = os.environ.get("TREFLE_KEY")
 
 # 代理图片请求
 @api_view(["GET"])
@@ -37,7 +33,7 @@ def proxy_image(request):
         return HttpResponse("无法获取图片", status=500)
 
 # 代理 bilibili(可分p) API 请求
-def bilibili(request):
+def bilibili_outline(request):
     # 获取 BV 号和分p
     bvid = request.GET.get('bvid')
     p = request.GET.get('p')
@@ -82,3 +78,100 @@ def bilibili(request):
     except requests.RequestException as error:
         print('代理请求 Bilibili API 失败', error)
         return HttpResponse('获取数据失败', status=500)
+
+@api_view(['GET'])
+def search_bilibili_videos(request):
+    keyword = request.GET.get('keyword')
+    if not keyword:
+        return JsonResponse({'error': '请输入关键词'}, status=400)
+
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36',
+        'Cookie': "buvid3=21F3AC10-9306-9633-3A45-5EE38144EF0463518infoc; b_nut=1724649063; _uuid=DBE94810A-F131-D7DF-8AD2-C453FE101D9C270112infoc; buvid4=3B6F114A-4356-F493-8001-75052321C38D64510-024082605-wFeebawqsGB6nzPm83ZA6w%3D%3D; rpdid=|(umu)~|~l)R0J'u~kRYRm|YR; fingerprint=b23632fbc792c3a63491240e96639cc4; buvid_fp_plain=undefined; buvid_fp=b23632fbc792c3a63491240e96639cc4; CURRENT_FNVAL=4048"
+    }
+
+    params = {
+        'search_type': 'video',
+        'keyword': keyword,
+    }
+
+    try:
+        time.sleep(3)
+        response = requests.get(
+            'https://api.bilibili.com/x/web-interface/search/type',
+            headers=headers,
+            params=params
+        )
+        response.raise_for_status()
+        return JsonResponse(response.json())
+    except requests.RequestException as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+@api_view(['GET'])
+def get_bilibili_tags(request):
+    bvid = request.GET.get('bvid')
+    if not bvid:
+        return JsonResponse({'error': '请输入视频 bvid 号'}, status=400)
+
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36',
+    }
+
+    try:
+        response = requests.get(
+            f'https://api.bilibili.com/x/tag/archive/tags?bvid={bvid}',
+            headers=headers,
+        )
+        response.raise_for_status()
+        return JsonResponse(response.json())
+    except requests.RequestException as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+@api_view(["GET"])
+def baidu_baike(request):
+    key_word = request.GET.get('keyword')
+    if not key_word:
+        return HttpResponse("请提供关键词",status=400)
+
+    try:
+        baidu_url = f'https://baike.baidu.com/api/openapi/BaikeLemmaCardApi?appid={BAIDU_Key}&bk_key={key_word}'
+        baidu_response = requests.get(baidu_url)
+        baidu_json = baidu_response.json()
+        if baidu_json.get("errno"):
+            return HttpResponse(f"请求 Baidu 百科 API 时发生错误", status=500)
+
+    except requests.RequestException as error:
+        print(error)
+        return HttpResponse('获取百科内容失败', status=500)
+    return JsonResponse(baidu_json, content_type='application/json')
+
+@api_view(["POST","GET"])
+def trefle_plants(request):
+    query_string = request.data.get('query_string')
+    filter_dict = request.data.get("filterDict")
+    """
+    filterDict = {
+        filterType: {typeName: ...,valueList:[...values]}
+    }
+    """
+    raw_url = f"https://trefle.io/api/v1/plants?token={Trefle_Key}"
+    if not filter_dict and not query_string:
+        response = requests.get(raw_url)
+        response.raise_for_status()
+        return JsonResponse(response.json(), status=200)
+
+    elif query_string:
+        url = raw_url + "&q=" + query_string
+        response = requests.get(url)
+        response.raise_for_status()
+        return JsonResponse(response.json(), status=200)
+
+    elif filter_dict:
+        for key, value in filter_dict.items():
+            filter_type = key
+            type_name = value.get('typeName')
+            value_list = value.get('valueList')
+            url = f"{raw_url}&{filter_type}[{type_name}]={value_list}"
+            response = requests.get(url)
+            response.raise_for_status()
+            return JsonResponse(response.json(), status=200)

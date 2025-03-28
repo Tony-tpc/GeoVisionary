@@ -1,5 +1,5 @@
 import jwt
-from django.http import JsonResponse
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response  # 使用 DRF 的 Response
@@ -10,8 +10,8 @@ from django.contrib.auth.hashers import make_password, check_password
 from GeoVisionary_Backend import settings
 from users.utils.MyJWT import generate_tokens, decode_token
 from django.db.models import Prefetch
-from .models import FrontendUser, Problem, ExamSet, Category
-from .serializers import FrontendUserSerializer, ProblemSerializer, ExamSetSerializer
+from .models import FrontendUser, Problem, ExamSet, Category, UserHistory, UserLearningBehavior
+from .serializers import FrontendUserSerializer, ProblemSerializer, ExamSetSerializer, UserHistorySerializer, UserLearningBehaviorSerializer
 
 @api_view(['POST'])
 @parser_classes([MultiPartParser, FormParser])  # 解析文件上传
@@ -44,6 +44,10 @@ def register_user(request):
         remarks=remarks,
         avatar=avatar,
     )
+    # 初始化学习行为记录
+    user_learning = UserLearningBehavior.objects.create(user=user)
+    user_learning.update_active_time()
+    user_learning.update_last_learning_interval()
 
     # 生成 JWT Token
     access_token, refresh_token = generate_tokens(user)
@@ -76,6 +80,11 @@ def login_user(request):
 
     # 验证用户是否存在 & 密码是否正确
     if user and check_password(password, user.password):  # Django 提供的密码校验方法
+        # 更新学习行为数据
+        user_learning = UserLearningBehavior.objects.get_or_create(user=user)[0]
+        user_learning.update_active_time()
+        user_learning.update_last_learning_interval()
+
         access_token, refresh_token = generate_tokens(user)  # 生成 JWT
         serializer = FrontendUserSerializer(user)
 
@@ -94,14 +103,14 @@ def refresh_token(request):
     refresh_token = request.data.get("refresh_token")
     user_id = decode_token(refresh_token)
     if not user_id:
-        return Response({"error": "无效或过期的 refresh_token"}, status=401)
+        return Response({"error": "无效或过期的 refresh_token"}, status=status.HTTP_401_UNAUTHORIZED)
 
     try:
         user = FrontendUser.objects.get(user_id=user_id)
         access_token, refresh_token = generate_tokens(user)
         return Response({"access_token": access_token, "refresh_token": refresh_token})
     except FrontendUser.DoesNotExist:
-        return Response({"error": "用户不存在"}, status=401)
+        return Response({"error": "用户不存在"}, status=status.HTTP_401_UNAUTHORIZED)
 
 
 @api_view(["POST"])
@@ -123,6 +132,12 @@ def auto_login(request):
 
         # 查询用户
         user = FrontendUser.objects.get(user_id=user_id)
+        # 更新用户学习行为
+        user_learning = UserLearningBehavior.objects.get_or_create(user=user)[0]
+        user_learning.update_active_time()  # 更新活跃时间
+        user_learning.update_last_learning_interval()  # 更新最近学习时间间隔
+
+        # 生成序列化信息
         serializer = FrontendUserSerializer(user)
 
         return Response({
@@ -185,7 +200,7 @@ def update_user(request):
             instance=user, data=update_data, partial=True
         )
         if not serializer.is_valid():
-            return Response({"errors": serializer.errors}, status=400)
+            return Response({"errors": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
         serializer.save()
             # 生成 JWT Token
         access_token, refresh_token = generate_tokens(user)
@@ -238,7 +253,7 @@ def leaderboard_inquiry(request):
             'correct_problems': obj.correct_problems,
             'avatar': request.build_absolute_uri(obj.avatar.url) if obj.avatar else None  # 生成完整URL
         }
-    return JsonResponse({"user_object": response_dict},status=status.HTTP_200_OK)
+    return Response({"user_object": response_dict},status=status.HTTP_200_OK)
 
 
 @api_view(["GET"])
@@ -248,13 +263,13 @@ def get_exams(request):
     # 获取前端传入的类别参数
     category_name = request.query_params.get("category")
     if not category_name:
-        return Response({"error": "缺少 category 参数"}, status=400)
+        return Response({"error": "缺少 category 参数"}, status=status.HTTP_400_BAD_REQUEST)
 
     # 查询类别对象
     try:
         category = Category.objects.get(name=category_name)
     except Category.DoesNotExist:
-        return Response({"error": "该类别不存在"}, status=404)
+        return Response({"error": "该类别不存在"}, status=status.HTTP_404_NOT_FOUND)
 
     # 获取所有属于该类别的独立试题
     standalone_problems = Problem.objects.filter(categories=category, exam_set__isnull=True).order_by("id")
@@ -293,3 +308,109 @@ def get_exams(request):
 
     # 返回 JSON 数据
     return Response(all_questions)
+
+@api_view(['POST'])
+def save_user_history(request):
+    histories = request.data.get("history")
+    print(histories)
+    user = request.data.get("user")
+    if not user:
+        return Response({'message': '缺少用户信息，无法保存答题详情'}, status=status.HTTP_400_BAD_REQUEST)
+
+    frontend_user = FrontendUser.objects.filter(user_id=user['user_id']).first()
+    if not frontend_user:
+        return Response({'message': '用户不存在'}, status=status.HTTP_404_NOT_FOUND)
+
+    # 遍历所有的答题历史
+    for index, history in histories.items():
+        question = ''
+        try:
+            # 单题和多题分别处理
+            if not "selected" in history:
+                for sub_index, sub_history in history.items():
+                    if "hasHistory" in sub_history and sub_history["hasHistory"]:
+                        continue
+                    question = sub_history["question"]
+                    problem = Problem.objects.get(question=question)
+                    UserHistory.objects.create(
+                        frontend_user=frontend_user,
+                        problem=problem,
+                        user_answer=",".join(sub_history.get('selected', [])),
+                        is_correct=sub_history.get('correct', False)
+                    )
+            else:
+                if "hasHistory" in history and history["hasHistory"]:
+                    continue  # 如果存在历史记录，则跳过保存
+                question = history["question"]
+                problem = Problem.objects.get(question=question)
+                UserHistory.objects.create(
+                    frontend_user=frontend_user,
+                    problem=problem,
+                    user_answer=",".join(history.get('selected', [])),
+                    is_correct=history.get('correct', False)
+                )
+
+        except Problem.DoesNotExist:
+            return Response({'message': f'题目 {question} 不存在'}, status=status.HTTP_404_NOT_FOUND)
+
+    return Response({'message': '答题详情已保存'}, status=status.HTTP_200_OK)
+
+@api_view(['POST'])
+def load_user_history(request):
+    user = request.data.get("user")
+    if not user:
+        return Response({'message': '缺少用户信息，无法保存答题详情'}, status=status.HTTP_400_BAD_REQUEST)
+
+    frontend_user = FrontendUser.objects.filter(user_id=user['user_id']).first()
+    if not frontend_user:
+        return Response({'message': '用户不存在'}, status=status.HTTP_404_NOT_FOUND)
+
+    histories = UserHistory.objects.filter(frontend_user=frontend_user)
+    serializer = UserHistorySerializer(histories, many=True)
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+@api_view(['POST'])
+def log_user_activity(request):
+    """记录用户的学习频率或点击行为"""
+    try:
+        data = request.data
+        user_id = data.get("user_id")  # 前端应提供用户 ID
+        content_type = data.get("content_type")  # 可能是 "video"、"text" 等
+        action = data.get("action")  # "study"（学习）或 "click"（点击）
+
+        # 查找用户和学习行为数据
+        user = FrontendUser.objects.get(user_id=user_id)
+        user_learning, _ = UserLearningBehavior.objects.get_or_create(user=user)
+
+        if action == "study":
+            user_learning.update_study_frequency()
+        elif action == "click" and content_type:
+            user_learning.update_content_click_rate(content_type)
+        else:
+            return Response({"error": "不合法的行为，或是错误的推荐内容类别"}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response({"message": "用户行为数据更新成功！"}, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET','POST'])
+def test_front_back_connection(request):
+    if request.method == 'POST':
+        data = request.data
+        user_id = data.get("user_id")
+        action = data.get("action")
+        content_type = data.get("content_type")
+        print(f"你请求了{user_id},{action},{content_type}的数据！")
+        return Response({'data':{'action':action,'content_type':content_type}},status=status.HTTP_200_OK)
+    else:
+        return Response(status=status.HTTP_202_ACCEPTED)
+
+@api_view(['GET'])
+def label_encoder(request):
+    users = FrontendUser.objects.all()
+    users_learning_behavior = UserLearningBehavior.objects.all()
+    users_data = FrontendUserSerializer(users, many=True).data
+    learning_behaviors = UserLearningBehaviorSerializer(users_learning_behavior, many=True).data
+    return Response({'data':{'users':users_data,'learning_behaviors':learning_behaviors}},status=status.HTTP_200_OK)

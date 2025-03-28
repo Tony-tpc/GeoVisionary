@@ -1,21 +1,18 @@
+import json
+
 from django.contrib import admin
 from django.utils.html import format_html
 from import_export import resources
 from import_export.admin import ImportExportModelAdmin
-from .models import FrontendUser,Category,ExamSet,Problem,UserHistory,UserConversation,APIConfig
+from .models import FrontendUser, Category, ExamSet, Problem, UserHistory, UserConversation, APIConfig, Video, \
+    TextContent, RecommendationContent, RecommendationScore, UserFavorite, UserLearningBehavior
+
 
 # 用户管理
 class FrontendUserAdmin(admin.ModelAdmin):
-    # 指定展示的内容
     list_display = ['get_user_id','get_username','get_email','get_gender','get_grade','get_remarks','get_correct_problems','get_avatar','get_created_at']
-
-    # 指定一页显示多少条数据
-    list_per_page = 20
-
-    # 过滤器
+    list_per_page = 15
     list_filter = ['gender','grade','created_at']
-
-    # 搜索框
     search_fields = ['user_id','username','email']
 
     # 显示、汉化、允许排序
@@ -68,16 +65,9 @@ admin.site.register(FrontendUser,FrontendUserAdmin)
 
 # 分类管理
 class CategoryAdmin(admin.ModelAdmin):
-    # 指定展示内容
     list_display = ['get_name','get_category_type']
-
-    # 指定一页显示多少条数据
     list_per_page = 10
-
-    # 过滤器
     list_filter = ['category_type']
-
-    # 搜索框
     search_fields = ['name','category_type']
 
     # 显示、汉化、允许排序
@@ -95,16 +85,9 @@ admin.site.register(Category,CategoryAdmin)
 
 # 试题组管理
 class ExamSetAdmin(ImportExportModelAdmin):
-    # 指定展示内容
     list_display = ['id','get_title','get_description','get_image_preview','get_categories','get_created_at']
-
-    # 指定一页显示多少条数据
     list_per_page = 10
-
-    # 过滤器
     list_filter = ['categories','created_at']
-
-    # 搜索框
     search_fields = ['title','description','categories__name']
 
     # 显示、汉化、允许排序
@@ -144,16 +127,9 @@ admin.site.register(ExamSet,ExamSetAdmin)
 
 # 试题表管理
 class ProblemAdmin(ImportExportModelAdmin):
-    # 显示展示内容
     list_display = ['id','get_exam_set','get_question_number','get_question','get_choices_formatted','get_answer','get_explanation','get_categories','get_created_at']
-
-    # 指定一页显示多少条数据
     list_per_page = 10
-
-    # 过滤器
     list_filter = ['created_at','categories']
-
-    # 搜索框
     search_fields = ['question','categories__name','exam_set__title']
 
     # 显示、汉化、允许排序
@@ -253,13 +229,8 @@ class UserHistoryAdmin(admin.ModelAdmin):
 admin.site.register(UserHistory, UserHistoryAdmin)
 
 class UserConversationAdmin(admin.ModelAdmin):
-    # 指定展示内容
     list_display = ['get_frontend_user','get_precursor_id','get_session_id','get_timestamp','get_user_message','get_llm_response']
-
-    # 指定一页显示多少条数据
     list_per_page = 10
-
-    # 搜索框
     search_fields = ['frontend_user__username','session_id','timestamp']
 
     # 显示、汉化、允许排序
@@ -296,16 +267,9 @@ class UserConversationAdmin(admin.ModelAdmin):
 admin.site.register(UserConversation,UserConversationAdmin)
 
 class APIConfigAdmin(admin.ModelAdmin):
-    # 指定展示内容
     list_display = ['get_service_name','get_api_key','get_api_secret','get_app_id','get_host','get_path','get_created_at','get_last_used_at','get_usage_count','get_is_active']
-
-    # 指定一页展示的内容
     list_per_page = 10
-
-    # 过滤器
     list_filter = ['service_name','is_active']
-
-    # 搜索框
     search_fields = ['api_key','app_id','host','path','created_at','last_used_at','usage_count']
 
     # 显示、汉化、允许排序
@@ -360,3 +324,252 @@ class APIConfigAdmin(admin.ModelAdmin):
     get_is_active.admin_order_field = 'is_active'
 
 admin.site.register(APIConfig,APIConfigAdmin)
+
+# 视频信息表管理
+class VideoAdmin(ImportExportModelAdmin):
+    list_display = ['get_bvid', 'get_p', 'get_title', 'get_tags', 'get_topic','get_cover_url', 'get_description', 'get_created_at', 'get_updated_at']
+    list_per_page = 10
+    list_filter = ['created_at', 'updated_at']
+    search_fields = ['bvid', 'title', 'tags']
+
+    def get_bvid(self, obj: Video):
+        return obj.bvid
+    get_bvid.short_description = '视频BVID'
+    get_bvid.admin_order_field = 'bvid'
+
+    def get_p(self, obj: Video):
+        return obj.p
+    get_p.short_description = '分P编号'
+    get_p.admin_order_field = 'p'
+
+    def get_title(self, obj: Video):
+        return obj.title
+    get_title.short_description = '视频标题'
+    get_title.admin_order_field = 'title'
+
+    def get_tags(self, obj: Video):
+        tags_list = obj.tags if isinstance(obj.tags, list) else []
+        return ", ".join(str(item) for item in tags_list) if tags_list else "无"
+    get_tags.short_description = '标签'
+    get_tags.admin_order_field = 'tags'
+
+    def get_topic(self, obj: Video):
+        return obj.topic
+    get_topic.short_description = '考点'
+    get_topic.admin_order_field = 'topic'
+
+    def get_cover_url(self, obj: Video):
+        return obj.cover_url if obj.cover_url else "无"
+    get_cover_url.short_description = '封面链接'
+    get_cover_url.admin_order_field = 'cover_url'
+
+    def get_description(self, obj: Video):
+        return obj.description if obj.description else "无"
+    get_description.short_description = '描述'
+    get_description.admin_order_field = 'description'
+
+    def get_created_at(self, obj: Video):
+        return obj.created_at
+    get_created_at.short_description = '创建时间'
+    get_created_at.admin_order_field = 'created_at'
+
+    def get_updated_at(self, obj: Video):
+        return obj.updated_at
+    get_updated_at.short_description = '更新时间'
+    get_updated_at.admin_order_field = 'updated_at'
+
+    class ProxyResource(resources.ModelResource):
+        class Meta:
+            model = Video
+    resource_class = ProxyResource
+
+admin.site.register(Video, VideoAdmin)
+
+# 图文信息表管理
+class TextContentAdmin(ImportExportModelAdmin):
+    list_display = ['get_keyword', 'get_description', 'get_topic']
+    search_fields = ['keyword', 'description']
+
+    def get_keyword(self, obj: TextContent):
+        return obj.keyword
+    get_keyword.short_description = '关键词'
+    get_keyword.admin_order_field = 'keyword'
+
+    def get_description(self, obj: TextContent):
+        return obj.description
+    get_description.short_description = '描述'
+    get_description.admin_order_field = 'description'
+
+    def get_topic(self, obj: Video):
+        return obj.topic
+    get_topic.short_description = '考点'
+    get_topic.admin_order_field = 'topic'
+
+    class ProxyResource(resources.ModelResource):
+        class Meta:
+            model = TextContent
+    resource_class = ProxyResource
+
+admin.site.register(TextContent, TextContentAdmin)
+
+# 推荐内容分类表管理
+class RecommendationContentAdmin(ImportExportModelAdmin):
+    list_display = ['get_content_type', 'get_content_key', 'get_category', 'get_popularity', 'get_created_at']
+    list_per_page = 10
+    list_filter = ['category', 'created_at']
+    search_fields = ['content_key', 'category__name']
+
+    def get_content_type(self, obj: UserFavorite):
+        return obj.get_content_type_display()
+    get_content_type.short_description = '内容类型'
+    get_content_type.admin_order_field = 'content_type'
+
+    def get_content_key(self, obj: UserFavorite):
+        return obj.content_key
+    get_content_key.short_description = '内容ID'
+    get_content_key.admin_order_field = 'content_key'
+
+    def get_category(self, obj: RecommendationContent):
+        return obj.category.name
+    get_category.short_description = '考点类别'
+    get_category.admin_order_field = 'category__name'
+
+    def get_created_at(self, obj: RecommendationContent):
+        return obj.created_at
+    get_created_at.short_description = '创建时间'
+    get_created_at.admin_order_field = 'created_at'
+
+    def get_popularity(self, obj: RecommendationContent):
+        return obj.popularity
+    get_popularity.short_description = '受欢迎度'
+    get_popularity.admin_order_field = 'popularity'
+
+    class ProxyResource(resources.ModelResource):
+        class Meta:
+            model = RecommendationContent
+    resource_class = ProxyResource
+
+admin.site.register(RecommendationContent, RecommendationContentAdmin)
+
+# 推荐分数表管理
+class RecommendationScoreAdmin(ImportExportModelAdmin):
+    list_display = ['get_user', 'get_category', 'get_score']
+    list_per_page = 10
+    list_filter = ['category']
+    search_fields = ['user__username', 'category__name']
+
+    def get_user(self, obj: RecommendationScore):
+        return obj.user.username
+    get_user.short_description = '用户名'
+    get_user.admin_order_field = 'user__username'
+
+    def get_category(self, obj: RecommendationScore):
+        return obj.category.name
+    get_category.short_description = '考点类别'
+    get_category.admin_order_field = 'category__name'
+
+    def get_score(self, obj: RecommendationScore):
+        return obj.score
+    get_score.short_description = '推荐分数'
+    get_score.admin_order_field = 'score'
+
+    class ProxyResource(resources.ModelResource):
+        class Meta:
+            model = RecommendationScore
+    resource_class = ProxyResource
+
+admin.site.register(RecommendationScore, RecommendationScoreAdmin)
+
+# 用户收藏表管理
+class UserFavoriteAdmin(ImportExportModelAdmin):
+    list_display = ['get_user', 'get_content_type', 'get_content_key', 'get_created_at']
+    list_per_page = 10
+    list_filter = ['content_type', 'created_at']
+    search_fields = ['user__username', 'content_key']
+
+    def get_user(self, obj: UserFavorite):
+        return obj.user.username
+    get_user.short_description = '用户名'
+    get_user.admin_order_field = 'user__username'
+
+    def get_content_type(self, obj: UserFavorite):
+        return obj.get_content_type_display()
+    get_content_type.short_description = '内容类型'
+    get_content_type.admin_order_field = 'content_type'
+
+    def get_content_key(self, obj: UserFavorite):
+        return obj.content_key
+    get_content_key.short_description = '内容ID'
+    get_content_key.admin_order_field = 'content_key'
+
+
+    def get_created_at(self, obj: UserFavorite):
+        return obj.created_at
+    get_created_at.short_description = '收藏时间'
+    get_created_at.admin_order_field = 'created_at'
+
+    class ProxyResource(resources.ModelResource):
+        class Meta:
+            model = UserFavorite
+    resource_class = ProxyResource
+
+admin.site.register(UserFavorite, UserFavoriteAdmin)
+
+# 用户学习行为管理
+class UserLearningBehaviorAdmin(ImportExportModelAdmin):
+    list_display = [
+        'get_user', 'get_last_learning_time_interval', 'get_study_frequency', 'get_topic_proficiency',
+        'get_active_time_distribution', 'get_content_click_rate', 'get_updated_at'
+    ]
+    list_per_page = 10
+    list_filter = ['last_learning_time_interval', 'updated_at']
+    search_fields = ['user__username']
+    ordering = ['-updated_at']
+
+    def get_user(self, obj: UserLearningBehavior):
+        return obj.user.username
+    get_user.short_description = '用户名'
+    get_user.admin_order_field = 'user__username'
+
+    def get_last_learning_time_interval(self, obj: UserLearningBehavior):
+        return obj.get_last_learning_time_interval_display()
+    get_last_learning_time_interval.short_description = '最近学习时间间隔'
+    get_last_learning_time_interval.admin_order_field = 'last_learning_time_interval'
+
+    def get_study_frequency(self, obj: UserLearningBehavior):
+        return format_html(",".join([f"<b>{key}</b>: {value}" for key, value in obj.study_frequency_last_7_days.items()]) if obj.study_frequency_last_7_days.items() else '暂无')
+    get_study_frequency.short_description = '过去7天学习频率'
+
+    def get_active_time_distribution(self, obj: UserLearningBehavior):
+        return format_html(",".join([f"<b>{key}</b>: {value}" for key, value in obj.active_time_distribution.items()]) if obj.active_time_distribution.items() else '暂无')
+    get_active_time_distribution.short_description = '活跃时间分布'
+
+    def get_updated_at(self, obj: UserLearningBehavior):
+        return obj.updated_at
+    get_updated_at.short_description = '最近更新时间'
+    get_updated_at.admin_order_field = 'updated_at'
+
+    def get_content_click_rate(self, obj: UserLearningBehavior):
+        return format_html(",".join([f"<b>{key}</b>: {value * 100}%" for key, value in obj.content_click_rate.items()]) if obj.content_click_rate.items() else '暂无')
+    get_content_click_rate.short_description = '用户点击率'
+    get_content_click_rate.admin_order_field = 'content_click_rate'
+
+    def get_topic_proficiency(self, obj: UserLearningBehavior):
+        return format_html(",".join([f"<b>{key}</b>: {value}" for key, value in obj.topic_proficiency.items()]) if obj.topic_proficiency.items() else '暂无')
+    get_topic_proficiency.short_description = '考点熟练度'
+
+    def changelist_view(self, request, extra_context=None):
+        # 当访问管理界面时，更新所有用户的学习间隔
+        user_behaviors = UserLearningBehavior.objects.all()
+        for user_behavior in user_behaviors:
+            user_behavior.update_last_learning_interval()
+
+        # 调用原有的 changelist_view 以保持正常的管理界面功能
+        return super().changelist_view(request, extra_context)
+
+    class ProxyResource(resources.ModelResource):
+        class Meta:
+            model = UserLearningBehavior
+    resource_class = ProxyResource
+
+admin.site.register(UserLearningBehavior, UserLearningBehaviorAdmin)

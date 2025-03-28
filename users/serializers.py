@@ -1,5 +1,8 @@
+from idlelib.history import History
+
 from rest_framework import serializers
-from .models import FrontendUser, ExamSet, Problem, Category
+from .models import FrontendUser, ExamSet, Problem, Category, UserHistory, UserLearningBehavior
+
 
 class FrontendUserSerializer(serializers.ModelSerializer):
     avatar = serializers.ImageField(required=False)  # 头像字段为可选项
@@ -41,3 +44,24 @@ class ExamSetSerializer(serializers.ModelSerializer):
     class Meta:
         model = ExamSet
         fields = ["id", "title", "description", "image", "categories", "problems"]
+
+class UserHistorySerializer(serializers.ModelSerializer):
+    problem = ProblemSerializer(read_only=True)
+
+    class Meta:
+        model = UserHistory
+        fields = ["problem", "user_answer", "is_correct"]
+        
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        # 删除不必要的 frontend_user 信息
+        data.pop('frontend_user', None)
+        return data
+
+class UserLearningBehaviorSerializer(serializers.ModelSerializer):
+    user = FrontendUserSerializer(read_only=True)
+
+    class Meta:
+        model = UserLearningBehavior
+        fields = ["user", "last_learning_time_interval", "study_frequency_last_7_days",
+                  "topic_proficiency", "active_time_distribution", "content_click_rate", "updated_at"]

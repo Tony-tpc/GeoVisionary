@@ -157,7 +157,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = "zh-Hans"
 
-TIME_ZONE = 'Etc/GMT-8'
+TIME_ZONE = 'Asia/Shanghai'
 
 USE_I18N = True
 
@@ -221,6 +221,30 @@ SIMPLEUI_CONFIG = {
             'name': 'API 管理',
             'icon': 'fa fa-cogs',
             'url': '/admin/users/apiconfig/',
+        },{
+            'name': '视频管理',
+            'icon': 'fa fa-video-camera',
+            'url': '/admin/users/video/',
+        },{
+            'name': '图文管理',
+            'icon': 'fa fa-file-text',
+            'url': '/admin/users/textcontent/',
+        },{
+            'name': '推荐内容',
+            'icon': 'fa fa-thumbs-up',
+            'url': '/admin/users/recommendationcontent/',
+        },{
+            'name': '推荐分数',
+            'icon': 'fa fa-line-chart',
+            'url': '/admin/users/recommendationscore/',
+        },{
+            'name': '用户收藏',
+            'icon': 'fa fa-heart',
+            'url': '/admin/users/userfavorite/',
+        },{
+            'name': '用户学习行为',
+            'icon': 'fa fa-book',  # 或 fa-clock-o/fa-graduation-cap
+            'url': '/admin/users/userlearningbehavior/',
         }],
     },{
         'name':'权限与用户管理',
