@@ -1,5 +1,5 @@
 import jwt
-from django.utils import timezone
+
 from rest_framework import status
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response  # 使用 DRF 的 Response
@@ -10,8 +10,11 @@ from django.contrib.auth.hashers import make_password, check_password
 from GeoVisionary_Backend import settings
 from users.utils.MyJWT import generate_tokens, decode_token
 from django.db.models import Prefetch
-from .models import FrontendUser, Problem, ExamSet, Category, UserHistory, UserLearningBehavior
-from .serializers import FrontendUserSerializer, ProblemSerializer, ExamSetSerializer, UserHistorySerializer, UserLearningBehaviorSerializer
+from .models import FrontendUser, Problem, ExamSet, Category, UserHistory, UserLearningBehavior, RecommendationContent, \
+    UserRating, Video, TextContent, RecommendationScore, UserFavorite
+from .serializers import FrontendUserSerializer, ProblemSerializer, ExamSetSerializer, UserHistorySerializer, \
+    UserLearningBehaviorSerializer, RecommendationContentSerializer, UserRatingSerializer, UserFavoriteSerializer
+
 
 @api_view(['POST'])
 @parser_classes([MultiPartParser, FormParser])  # 解析文件上传
@@ -246,7 +249,28 @@ def update_user(request):
 
 @api_view(["GET"])
 def leaderboard_inquiry(request):
+    # 用户历史和信息
+    user_histories = UserHistory.objects.all()
     user_list = FrontendUser.objects.all()
+    # 更新所有用户的正确题数
+    histories_dict = {}
+    # 遍历用户做题历史，统计用户正确题目数
+    for item in user_histories:
+        username = str(item).split('的错题记录')[0].strip()  # 获取用户名
+        if username not in histories_dict:
+            histories_dict[username] = 0
+        if item.is_correct:
+            histories_dict[username] += 1
+
+    # 遍历用户，如果有记录就设为记录，否则为 0
+    for user in user_list:
+        if user.username not in histories_dict:
+            user.correct_problems = 0
+            user.save(update_fields=['correct_problems'])
+        else:
+            user.correct_problems = histories_dict[user.username]
+            user.save(update_fields=['correct_problems'])
+
     response_dict = {}
     for obj in user_list:
         response_dict[obj.username] = {
@@ -394,23 +418,155 @@ def log_user_activity(request):
     except Exception as e:
         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+@api_view(['POST'])
+def log_user_rating(request):
+    # 获取日志信息
+    data = request.data
+    user_id = data.get("user_id")
+    content_type = data.get("content_type")
+    rating_type = data.get("rating_type")
+    ratings = data.get("rating") # 内存放包含 content_key 信息的数组
+
+    user = FrontendUser.objects.get(user_id=user_id)
+    if not user:
+        return Response("用户不存在！", status=status.HTTP_404_NOT_FOUND)
+
+    if rating_type == 'rating':
+        for rating in ratings:
+            assert isinstance(rating, dict)
+            key = next(iter(rating))
+            value = rating[key]
+            rating_content = RecommendationContent.objects.filter(
+                content_type=content_type, content_key=key
+            ).first()
+
+            if not rating_content:
+                continue
+
+            user_rating, created = UserRating.objects.get_or_create(
+                user=user, content=rating_content
+            )
+
+            if value == 0:
+                # 用户想要删除评分
+                user_rating.delete()
+            else:
+                # 用户更新评分
+                user_rating.rating = value
+                user_rating.save()
+
+    elif rating_type == 'favorite':
+        # 获取用户数据库中已有的收藏内容
+        current_favorites = set(
+            UserFavorite.objects.filter(user=user, content__content_type=content_type)
+            .values_list("content__content_key", flat=True)
+        )
+
+        # 计算前端传来的新收藏列表
+        new_favorites = set(ratings)
+        print(new_favorites)
+
+        # 找到需要删除的（数据库有但前端没有）
+        to_delete = current_favorites - new_favorites
+
+        # 找到需要新增的（前端有但数据库没有）
+        to_add = new_favorites - current_favorites
+
+        # 批量删除
+        UserFavorite.objects.filter(user=user, content__content_key__in=to_delete).delete()
+
+        # 批量添加
+        new_favorite_objects = [
+            UserFavorite(user=user, content=RecommendationContent.objects.get(content_key=key))
+            for key in to_add
+        ]
+        UserFavorite.objects.bulk_create(new_favorite_objects)
+
+    else:
+        return Response("未知评价类型！", status=status.HTTP_400_BAD_REQUEST)
+
+    return Response("用户评价已更新！",status=status.HTTP_200_OK)
+
+@api_view(['POST'])
+def get_user_rating(request):
+    data = request.data
+    user_id = data.get("user_id")
+    content_type = data.get("content_type")
+    rating_type = data.get("rating_type")
+    data = []
+    if not user_id:
+        return Response({"message":"用户不存在！"},status=status.HTTP_400_BAD_REQUEST)
+
+    if rating_type == 'rating':
+        rated_contents = UserRating.objects.filter(content__content_type=content_type,user_id=user_id)
+        for content in rated_contents:
+            content_dict = {content.content.content_key:content.rating}
+            data.append(content_dict)
+
+    elif rating_type == 'favorite':
+        favorite_contents = UserFavorite.objects.filter(content__content_type=content_type,user_id=user_id)
+        for content in favorite_contents:
+            data.append(content.content.content_key)
+
+    return Response({"data":data},status=status.HTTP_200_OK)
+
+@api_view(['GET'])
+def get_recommend_items(request):
+    user_id = request.GET.get('user_id')
+    recommend_type = request.GET.get('recommend_type')
+    if recommend_type not in ['text', 'video']:
+        return Response({"message":"未知推荐类型！"},status=status.HTTP_400_BAD_REQUEST)
+
+    response_list = []
+    # 如果没有用户 ID 或推荐分数表没有该用户，直接按照受欢迎度推荐，否则按照推荐分数从高到低推荐
+    if not user_id or not RecommendationScore.objects.filter(user_id=user_id).exists():
+        recommend_contents = RecommendationContent.objects.filter(content_type=recommend_type).order_by("-popularity", "-id")
+    else:
+        recommend_scores = RecommendationScore.objects.filter(user_id=user_id).select_related("content").order_by("-score", "-id")
+        recommend_contents = [rec_score.content for rec_score in recommend_scores if rec_score.content.content_type == recommend_type]
+
+    # 遍历列表，根据内容类型添加推荐内容
+    for recommend_content in recommend_contents:
+        if recommend_content.content_type == 'text':
+            keyword = recommend_content.content_key
+            response_list.append(keyword)
+        elif recommend_content.content_type == 'video':
+            bvid, p = recommend_content.content_key.split('-')
+            response_list.append({"bvid": bvid, "p": p})
+
+    return Response({"data":response_list},status=status.HTTP_200_OK)
 
 @api_view(['GET','POST'])
 def test_front_back_connection(request):
     if request.method == 'POST':
         data = request.data
         user_id = data.get("user_id")
-        action = data.get("action")
         content_type = data.get("content_type")
-        print(f"你请求了{user_id},{action},{content_type}的数据！")
-        return Response({'data':{'action':action,'content_type':content_type}},status=status.HTTP_200_OK)
+        rating_type = data.get("rating_type")
+        rating = data.get("rating")
+        print(f"你请求了{user_id},{content_type},{rating_type},{rating}的数据！")
+        return Response({'data':{'content_type':content_type,
+                                 "rating_type":rating_type,"rating":rating}},status=status.HTTP_200_OK)
     else:
         return Response(status=status.HTTP_202_ACCEPTED)
 
 @api_view(['GET'])
 def label_encoder(request):
+    # 获取构建特征向量的特征值
     users = FrontendUser.objects.all()
+    user_histories = UserHistory.objects.all()
+    user_favorites = UserFavorite.objects.all()
+    user_ratings = UserRating.objects.all()
     users_learning_behavior = UserLearningBehavior.objects.all()
+    rec_contents = RecommendationContent.objects.all()
+    # 将信息序列化成为 json 格式
     users_data = FrontendUserSerializer(users, many=True).data
+    histories_data = UserHistorySerializer(user_histories, many=True).data
+    favorites_data = UserFavoriteSerializer(user_favorites, many=True).data
+    ratings_data = UserRatingSerializer(user_ratings, many=True).data
     learning_behaviors = UserLearningBehaviorSerializer(users_learning_behavior, many=True).data
-    return Response({'data':{'users':users_data,'learning_behaviors':learning_behaviors}},status=status.HTTP_200_OK)
+    contents_data = RecommendationContentSerializer(rec_contents, many=True).data
+
+    return Response({"data":{"users":users_data, "histories":histories_data,
+                             "favorites":favorites_data, "ratings":ratings_data,
+                             "learning_behaviors":learning_behaviors, "contents":contents_data}},status=status.HTTP_200_OK)

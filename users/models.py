@@ -126,11 +126,12 @@ class UserConversation(models.Model):
 class APIConfig(models.Model):
 
     SERVICE_CHOICES = [
-        ('openai', 'OpenAI API'),
-        ('google', 'Google API'),
-        ('baidu', 'Baidu API'),
+        ('tencent', '腾讯地图 API'),
+        ('tianditu', '天地图 API'),
+        ('baidu', '百度百科 API'),
         ('deepseek', 'DeepSeek API'),
         ('xfyun', '讯飞星火 API'),
+        ('trefle', 'trefle 植物百科 API'),
         ('custom', '自定义 API'),
     ]
 
@@ -222,36 +223,45 @@ class RecommendationContent(models.Model):
     def __str__(self):
         return f"{self.get_content_type_display()} - {self.content_key} ({self.category})"
 
-# 推荐内容评分表
-class RecommendationScore(models.Model):
+# 用户评分表
+class UserRating(models.Model):
     user = models.ForeignKey(FrontendUser, on_delete=models.CASCADE)
-    category = models.ForeignKey(Category, on_delete=models.CASCADE, limit_choices_to={'category_type': 'topic'})
-    score = models.FloatField(default=0.0)  # 推荐分数
+    content = models.ForeignKey(RecommendationContent, on_delete=models.CASCADE)
+    rating = models.IntegerField(default=0)  # 评分，范围 1-5（可调整）
+
+    created_at = models.DateTimeField(auto_now_add=True)  # 评分时间
+    updated_at = models.DateTimeField(auto_now=True)  # 评分更新时间
 
     class Meta:
-        unique_together = ('user', 'category')  # 保证同一用户对同一考点只有一个分数
+        unique_together = ('user', 'content')  # 保证用户对同一内容只评分一次
 
     def __str__(self):
-        return f"{self.user.username} - {self.category.name} - Score: {self.score}"
+        return f"{self.user.username} - {self.content.content_key} - Rating: {self.rating}"
 
 # 用户收藏表
 class UserFavorite(models.Model):
     user = models.ForeignKey(FrontendUser, on_delete=models.CASCADE)
-    content_type = models.CharField(max_length=10, choices=[('video', '视频'), ('text', '图文')])
-    content_key = models.CharField(max_length=255)  # 存 bvid-p 或 keyword
-    p = models.PositiveIntegerField(null=True, blank=True)  # 分P编号，仅在收藏视频时使用
-    created_at = models.DateTimeField(auto_now_add=True)
+    content = models.ForeignKey(RecommendationContent, on_delete=models.CASCADE, default=None)  # 直接关联推荐内容表
+    created_at = models.DateTimeField(auto_now_add=True)  # 收藏时间
+
+    class Meta:
+        unique_together = ('user', 'content')  # 保证用户对同一内容只收藏一次
 
     def __str__(self):
-        if self.content_type == 'video':
-            return f"视频: {self.content_key} 收藏者: {self.user.username}"
-        return f"{self.get_content_type_display()}: {self.content_key} 收藏者: {self.user.username}"
+        return f"{self.user.username} 收藏了 {self.content.content_key}"
 
-    def save(self, *args, **kwargs):
-        if self.content_type == "video" and self.p is not None:
-            bvid = self.content_key.split('-')[0]  # 只取 bvid 部分
-            self.content_key = f"{bvid}-{self.p}"  # 生成唯一标识
-        super().save(*args, **kwargs)
+# 推荐内容评分预测表
+class RecommendationScore(models.Model):
+    user = models.ForeignKey(FrontendUser, on_delete=models.CASCADE)
+    content = models.ForeignKey(RecommendationContent, on_delete=models.CASCADE)
+    score = models.FloatField(default=0.0)  # 推荐分数
+
+    class Meta:
+        unique_together = ('user', 'content')  # 保证同一用户对同一内容只有一个分数
+
+    def __str__(self):
+        return f"{self.user.username} - {self.content.content_key} - Score: {self.score}"
+
 
 def default_active_time_counts():
     return {"morning": 0, "afternoon": 0, "evening": 0}

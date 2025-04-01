@@ -1,11 +1,9 @@
-import json
-
 from django.contrib import admin
 from django.utils.html import format_html
 from import_export import resources
 from import_export.admin import ImportExportModelAdmin
 from .models import FrontendUser, Category, ExamSet, Problem, UserHistory, UserConversation, APIConfig, Video, \
-    TextContent, RecommendationContent, RecommendationScore, UserFavorite, UserLearningBehavior
+    TextContent, RecommendationContent, RecommendationScore, UserLearningBehavior, UserRating, UserFavorite
 
 
 # 用户管理
@@ -44,7 +42,6 @@ class FrontendUserAdmin(admin.ModelAdmin):
     def get_remarks(self,obj:FrontendUser):
         return obj.remarks
     get_remarks.short_description = '个人签名'
-    get_remarks.admin_order_field = 'remarks'
 
     def get_correct_problems(self,obj:FrontendUser):
         return obj.correct_problems
@@ -54,12 +51,35 @@ class FrontendUserAdmin(admin.ModelAdmin):
     def get_avatar(self,obj:FrontendUser):
         return obj.avatar
     get_avatar.short_description = '头像'
-    get_avatar.admin_order_field = 'avatar'
 
     def get_created_at(self,obj:FrontendUser):
         return obj.created_at
     get_created_at.short_description = '注册时间'
     get_created_at.admin_order_field = 'created_at'
+
+    def changelist_view(self, request, extra_context=None):
+        # 当访问管理界面时，更新所有用户的正确题数
+        user_histories = UserHistory.objects.all()
+        histories_dict = {}
+        # 遍历用户做题历史，统计用户正确题目数
+        for item in user_histories:
+            username = str(item).split('的错题记录')[0].strip() # 获取用户名
+            if username not in histories_dict:
+                histories_dict[username] = 0
+            if item.is_correct:
+                histories_dict[username] += 1
+        users = FrontendUser.objects.all()
+        # 遍历用户，如果有记录就设为记录，否则为 0
+        for user in users:
+            if user.username not in histories_dict:
+                user.correct_problems = 0
+                user.save(update_fields=['correct_problems'])
+            else:
+                user.correct_problems = histories_dict[user.username]
+                user.save(update_fields=['correct_problems'])
+
+        # 调用原有的 changelist_view 以保持正常的管理界面功能
+        return super().changelist_view(request, extra_context)
 
 admin.site.register(FrontendUser,FrontendUserAdmin)
 
@@ -104,7 +124,6 @@ class ExamSetAdmin(ImportExportModelAdmin):
     def get_description(self, obj: ExamSet):
         return obj.description
     get_description.short_description = '试题背景'
-    get_description.admin_order_field = 'description'
 
     def get_image_preview(self, obj: ExamSet):
         if obj.image:
@@ -163,7 +182,6 @@ class ProblemAdmin(ImportExportModelAdmin):
     def get_explanation(self, obj: Problem):
         return obj.explanation
     get_explanation.short_description = '解析'
-    get_explanation.admin_order_field = 'explanation'
 
     def get_categories(self, obj: Problem):
         return ", ".join([category.name for category in obj.categories.all()])
@@ -257,12 +275,10 @@ class UserConversationAdmin(admin.ModelAdmin):
     def get_user_message(self, obj: UserConversation):
         return obj.user_message
     get_user_message.short_description = '用户输入'
-    get_user_message.admin_order_field = 'user_message'
 
     def get_llm_response(self, obj: UserConversation):
         return obj.llm_response
     get_llm_response.short_description = 'llm输出'
-    get_llm_response.admin_order_field = 'llm_response'
 
 admin.site.register(UserConversation,UserConversationAdmin)
 
@@ -286,22 +302,18 @@ class APIConfigAdmin(admin.ModelAdmin):
     def get_api_secret(self, obj: APIConfig):
         return obj.api_secret
     get_api_secret.short_description = 'API 密码'
-    get_api_secret.admin_order_field = 'api_secret'
 
     def get_app_id(self, obj: APIConfig):
         return obj.app_id
     get_app_id.short_description = 'App ID'
-    get_app_id.admin_order_field = 'app_id'
 
     def get_host(self, obj: APIConfig):
         return obj.host
     get_host.short_description = '服务器地址'
-    get_host.admin_order_field = 'host'
 
     def get_path(self, obj: APIConfig):
         return obj.path
     get_path.short_description = '访问路径'
-    get_path.admin_order_field = 'path'
 
     def get_created_at(self, obj: APIConfig):
         return obj.created_at
@@ -361,12 +373,10 @@ class VideoAdmin(ImportExportModelAdmin):
     def get_cover_url(self, obj: Video):
         return obj.cover_url if obj.cover_url else "无"
     get_cover_url.short_description = '封面链接'
-    get_cover_url.admin_order_field = 'cover_url'
 
     def get_description(self, obj: Video):
         return obj.description if obj.description else "无"
     get_description.short_description = '描述'
-    get_description.admin_order_field = 'description'
 
     def get_created_at(self, obj: Video):
         return obj.created_at
@@ -398,7 +408,6 @@ class TextContentAdmin(ImportExportModelAdmin):
     def get_description(self, obj: TextContent):
         return obj.description
     get_description.short_description = '描述'
-    get_description.admin_order_field = 'description'
 
     def get_topic(self, obj: Video):
         return obj.topic
@@ -419,12 +428,12 @@ class RecommendationContentAdmin(ImportExportModelAdmin):
     list_filter = ['category', 'created_at']
     search_fields = ['content_key', 'category__name']
 
-    def get_content_type(self, obj: UserFavorite):
+    def get_content_type(self, obj: RecommendationContent):
         return obj.get_content_type_display()
     get_content_type.short_description = '内容类型'
     get_content_type.admin_order_field = 'content_type'
 
-    def get_content_key(self, obj: UserFavorite):
+    def get_content_key(self, obj: RecommendationContent):
         return obj.content_key
     get_content_key.short_description = '内容ID'
     get_content_key.admin_order_field = 'content_key'
@@ -453,20 +462,20 @@ admin.site.register(RecommendationContent, RecommendationContentAdmin)
 
 # 推荐分数表管理
 class RecommendationScoreAdmin(ImportExportModelAdmin):
-    list_display = ['get_user', 'get_category', 'get_score']
+    list_display = ['get_user', 'get_content_key', 'get_score']
     list_per_page = 10
-    list_filter = ['category']
-    search_fields = ['user__username', 'category__name']
+    list_filter = ['content__content_key']
+    search_fields = ['user__username', 'content__content_key']
 
     def get_user(self, obj: RecommendationScore):
         return obj.user.username
     get_user.short_description = '用户名'
     get_user.admin_order_field = 'user__username'
 
-    def get_category(self, obj: RecommendationScore):
-        return obj.category.name
-    get_category.short_description = '考点类别'
-    get_category.admin_order_field = 'category__name'
+    def get_content_key(self, obj: RecommendationScore):
+        return obj.content.content_key
+    get_content_key.short_description = '推荐内容'
+    get_content_key.admin_order_field = 'content__content_key'
 
     def get_score(self, obj: RecommendationScore):
         return obj.score
@@ -480,28 +489,67 @@ class RecommendationScoreAdmin(ImportExportModelAdmin):
 
 admin.site.register(RecommendationScore, RecommendationScoreAdmin)
 
+# 评分表资源类（用于导入/导出数据）
+class UserRatingResource(resources.ModelResource):
+    class Meta:
+        model = UserRating
+
+# 评分表管理
+class UserRatingAdmin(ImportExportModelAdmin):
+    list_display = ['get_user', 'get_content', 'get_rating', 'get_created_at', 'get_updated_at']
+    list_per_page = 10
+    list_filter = ['rating', 'content__content_key']
+    search_fields = ['user__username', 'content__content_key']
+    ordering = ['-updated_at']
+
+    # 获取用户名
+    def get_user(self, obj: UserRating):
+        return obj.user.username
+    get_user.short_description = '用户名'
+    get_user.admin_order_field = 'user__username'
+
+    # 获取推荐内容
+    def get_content(self, obj: UserRating):
+        return obj.content.content_key
+    get_content.short_description = '推荐内容'
+    get_content.admin_order_field = 'content__content_key'
+
+    # 获取评分
+    def get_rating(self, obj: UserRating):
+        return obj.rating
+    get_rating.short_description = '评分'
+    get_rating.admin_order_field = 'rating'
+
+    def get_created_at(self, obj: UserRating):
+        return obj.created_at
+    get_created_at.short_description = '评价时间'
+    get_created_at.admin_order_field = 'created_at'
+
+    def get_updated_at(self, obj: UserRating):
+        return obj.updated_at
+    get_updated_at.short_description = '更改时间'
+    get_updated_at.admin_order_field = 'updated_at'
+
+    resource_class = UserRatingResource  # 绑定数据导入导出功能
+
+admin.site.register(UserRating, UserRatingAdmin)
+
 # 用户收藏表管理
 class UserFavoriteAdmin(ImportExportModelAdmin):
-    list_display = ['get_user', 'get_content_type', 'get_content_key', 'get_created_at']
+    list_display = ['get_user', 'get_content', 'get_created_at']
     list_per_page = 10
-    list_filter = ['content_type', 'created_at']
-    search_fields = ['user__username', 'content_key']
+    list_filter = ['content__content_type', 'created_at']
+    search_fields = ['user__username', 'content__content_key']
 
     def get_user(self, obj: UserFavorite):
         return obj.user.username
     get_user.short_description = '用户名'
     get_user.admin_order_field = 'user__username'
 
-    def get_content_type(self, obj: UserFavorite):
-        return obj.get_content_type_display()
-    get_content_type.short_description = '内容类型'
-    get_content_type.admin_order_field = 'content_type'
-
-    def get_content_key(self, obj: UserFavorite):
-        return obj.content_key
-    get_content_key.short_description = '内容ID'
-    get_content_key.admin_order_field = 'content_key'
-
+    def get_content(self, obj: UserFavorite):
+        return obj.content.content_key
+    get_content.short_description = '推荐内容'
+    get_content.admin_order_field = 'content.content_key'
 
     def get_created_at(self, obj: UserFavorite):
         return obj.created_at

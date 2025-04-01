@@ -218,6 +218,10 @@ SIMPLEUI_CONFIG = {
             'icon': 'fa fa-comments',
             'url': '/admin/users/userconversation/',
         },{
+            'name': '用户学习行为',
+            'icon': 'fa fa-book',  # 或 fa-clock-o/fa-graduation-cap
+            'url': '/admin/users/userlearningbehavior/',
+        },{
             'name': 'API 管理',
             'icon': 'fa fa-cogs',
             'url': '/admin/users/apiconfig/',
@@ -234,17 +238,17 @@ SIMPLEUI_CONFIG = {
             'icon': 'fa fa-thumbs-up',
             'url': '/admin/users/recommendationcontent/',
         },{
-            'name': '推荐分数',
-            'icon': 'fa fa-line-chart',
-            'url': '/admin/users/recommendationscore/',
+            'name': '用户评分',
+            'icon': 'fa fa-star',
+            'url': '/admin/users/userrating/',  # Django Admin 评分表管理页面
         },{
             'name': '用户收藏',
             'icon': 'fa fa-heart',
             'url': '/admin/users/userfavorite/',
         },{
-            'name': '用户学习行为',
-            'icon': 'fa fa-book',  # 或 fa-clock-o/fa-graduation-cap
-            'url': '/admin/users/userlearningbehavior/',
+            'name': '推荐分数',
+            'icon': 'fa fa-line-chart',
+            'url': '/admin/users/recommendationscore/',
         }],
     },{
         'name':'权限与用户管理',

@@ -1,7 +1,6 @@
-from idlelib.history import History
-
 from rest_framework import serializers
-from .models import FrontendUser, ExamSet, Problem, Category, UserHistory, UserLearningBehavior
+from .models import FrontendUser, ExamSet, Problem, Category, UserHistory, UserLearningBehavior, RecommendationContent, \
+    UserRating, UserFavorite
 
 
 class FrontendUserSerializer(serializers.ModelSerializer):
@@ -45,6 +44,7 @@ class ExamSetSerializer(serializers.ModelSerializer):
         model = ExamSet
         fields = ["id", "title", "description", "image", "categories", "problems"]
 
+# 用户做题历史序列化器
 class UserHistorySerializer(serializers.ModelSerializer):
     problem = ProblemSerializer(read_only=True)
 
@@ -58,6 +58,32 @@ class UserHistorySerializer(serializers.ModelSerializer):
         data.pop('frontend_user', None)
         return data
 
+# 推荐内容序列化器
+class RecommendationContentSerializer(serializers.ModelSerializer):
+    category = CategorySerializer(read_only=True)
+
+    class Meta:
+        model = RecommendationContent
+        fields = ["content_type", "content_key", "p", "category", "popularity", "created_at"]
+
+# 用户评分序列化器
+class UserRatingSerializer(serializers.ModelSerializer):
+    user = FrontendUserSerializer(read_only=True)
+    content = RecommendationContentSerializer(read_only=True)
+
+    class Meta:
+        model = UserRating
+        fields = ["user", "content", "rating", "created_at", "updated_at"]
+
+# 用户收藏序列化器
+class UserFavoriteSerializer(serializers.ModelSerializer):
+    user = FrontendUserSerializer(read_only=True)
+
+    class Meta:
+        model = UserFavorite
+        fields = ["user", "content", "created_at"]
+
+# 用户学习行为序列化器
 class UserLearningBehaviorSerializer(serializers.ModelSerializer):
     user = FrontendUserSerializer(read_only=True)
 
