@@ -39,8 +39,8 @@
 
       <div class="information-display">
         <!--  视频部分  -->
-        <div class="videos-container" v-if="data.userChoice === 'videos'"
-             @click="logActivity('click','video')">
+        <div class="video-indent"></div>
+        <div class="videos-container" v-if="data.userChoice === 'videos'">
           <div class="videos-title"></div>
           <BilibiliVideos :videos="displayVideos" :currentPage="currentPage"></BilibiliVideos>
           <div class="pagination-block">
@@ -58,11 +58,10 @@
         </div>
 
         <!--  图文内容  -->
-        <div class="img-articles-container" v-if="data.userChoice === 'articles'" ref="articlesContainer"
-             @click="logActivity('click','article')">
+        <div class="img-articles-container" v-if="data.userChoice === 'articles'" ref="articlesContainer">
           <div>
             <BaiduBaike @update-bg="updateBackground"
-                        :keyword="keywordList"/>
+                        :keyword="data.keywordList"/>
           </div>
         </div>
 
@@ -90,33 +89,28 @@ import BaiduBaike from "@/components/BaiduBaike.vue";
 import BilibiliVideos from "@/components/BilibiliVideos.vue";
 import ScrollButton from "@/components/ScrollButton.vue";
 import Loading from "@/components/Loading.vue"
-import { logActivity } from "@/store/usefulFunction.js";
+import { logActivity, getRecommendations } from "@/store/usefulFunction.js";
 
 gsap.registerPlugin(ScrollTrigger);
 
 const data = reactive({
   carouselItems:[ph1,ph2,ph3,ph4], // 轮播图
-  videos:[{'bvid': 'BV1RN4y1f7Hn','p': 2},{'bvid': 'BV1RN4y1f7Hn','p': 3},{'bvid': 'BV1RN4y1f7Hn','p': 4},
-    {'bvid': 'BV1RN4y1f7Hn','p': 5},{'bvid': 'BV1RN4y1f7Hn','p': 6},{'bvid': 'BV1RN4y1f7Hn','p': 7},
-    {'bvid': 'BV1RN4y1f7Hn','p': 8},{'bvid': 'BV1RN4y1f7Hn','p': 9},{'bvid': 'BV1RN4y1f7Hn','p': 10},
-    {'bvid': 'BV1RN4y1f7Hn','p': 2},{'bvid': 'BV1RN4y1f7Hn','p': 3},{'bvid': 'BV1RN4y1f7Hn','p': 4},
-    {'bvid': 'BV1RN4y1f7Hn','p': 5},{'bvid': 'BV1RN4y1f7Hn','p': 6},{'bvid': 'BV1RN4y1f7Hn','p': 7},
-    {'bvid': 'BV1RN4y1f7Hn','p': 8},{'bvid': 'BV1RN4y1f7Hn','p': 9},{'bvid': 'BV1RN4y1f7Hn','p': 10},
-  ], // 视频信息
+  videos:[], // 视频信息
+  keywordList: [], // 关键词列表
   userChoice: '',
 })
 
 const currentPage = ref(1); // 当前页面
 const disabled = ref(false); // 禁用分页
-const total = ref(data.videos.length); // 视频总数量
+const total = computed(() => data.videos.length) // 视频总数量
 const pageSize = ref(16); // 页面视频数量
 const lastIndex = computed(() => currentPage.value * pageSize.value); // 当前页最后一个视频下标（不包括）
+
 // 展示视频内容
 const displayVideos = computed(() => data.videos.slice(lastIndex.value - pageSize.value, lastIndex.value))
 
 const articlesContainer = ref(null); // 图文容器
-const colorThief = new ColorThief()
-const keywordList = ref(['地理','天文','地形','月相','工业','农业','水循环','GIS'])
+const colorThief = new ColorThief() // 颜色聚合算法类
 
 // 处理页面切换
 const handleCurrentChange = (val) => {
@@ -173,7 +167,12 @@ onMounted(() => {
       scrub:true,
     }
   });
-
+  getRecommendations("text").then(response => {
+    data.keywordList = response;
+  });
+  getRecommendations("video").then(response => {
+    data.videos = response;
+  })
 });
 </script>
 
@@ -318,12 +317,16 @@ onMounted(() => {
   top: 100px;
 }
 
+.video-indent {
+  width: 100%;
+  height: 15vh;
+}
 /* 视频容器 */
 .videos-container {
-  position: absolute;
-  top: 15%;
+  position: relative;
+  top: 0;
   width: 100%;
-  max-height: 100vh;
+  min-height: 85vh;
 }
 
 /* 图文容器 */

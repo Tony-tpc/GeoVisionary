@@ -1,6 +1,12 @@
 <script setup>
-import {onMounted, ref, computed, nextTick, onUnmounted} from "vue";
+import {onMounted, ref, reactive, computed, nextTick, onUnmounted, markRaw} from "vue";
 import {throttle} from "lodash";
+import { logActivity, logRatings, loadRatings } from "@/store/usefulFunction.js";
+import HeartEmpty from "@/components/icons/HeartEmpty.vue"
+import HeartFilled from "@/components/icons/HeartFilled.vue";
+
+const heartEmptyIcon = markRaw(HeartEmpty);
+const heartFilledIcon = markRaw(HeartFilled);
 
 const props = defineProps({
   keyword: {
@@ -14,6 +20,19 @@ const keywordList = computed(() => props.keyword.length > 0 ? props.keyword : ['
 const baikeList = ref([]); // 百科响应数据列表
 const backendAPI = "http://localhost:8040/proxy/proxy-image/"; // 后端图片代理接口
 const divContainer = ref(null);
+
+const ratings = reactive({}); // 评分对象
+const favorites = reactive({}); // 收藏对象
+
+const handleRateChange = (keyword, value) => {
+  ratings[keyword] = value; // 记录评分
+  console.log("评分数据:", ratings);
+};
+
+const handleFavoriteChange = (keyword, value) => {
+  favorites[keyword] = value; // 记录收藏
+  console.log(`收藏数据:`, favorites);
+}
 
 const getBaikeInfo = async (keyword, attempt = 1, maxAttempts = 5) => {
   const requestUrl = "http://localhost:8040/proxy/baidu-baike/?keyword=" + keyword;
@@ -117,11 +136,24 @@ onMounted(() => {
   keywordList.value.forEach((keyword) => {
     getBaikeInfo(keyword);
   })
+  loadRatings("text", "rating").then(result => {
+    result.forEach((item) => {
+      const [[key, value]] = Object.entries(item);
+      ratings[key] = value;
+    })
+  });
+  loadRatings("text", "favorite").then(result => {
+    result.forEach((item) => {
+      favorites[item] = 1;
+    })
+  });
   window.addEventListener("resize", reset);
 });
 
 onUnmounted(() => {
   window.removeEventListener("resize", reset);
+  logRatings("text","rating",ratings);
+  logRatings("text","favorite",favorites);
 })
 </script>
 
@@ -135,7 +167,9 @@ onUnmounted(() => {
            @mouseleave="handleMouseLeave">
         <el-link :underline="false"
                  :href="baike.targetUrl"
-                 target="_blank">
+                 target="_blank"
+                 @click="logActivity('click','article',baike.keyword)"
+        >
           <div class="baike-content">
             <div class="image-wrapper">
               <img
@@ -152,12 +186,34 @@ onUnmounted(() => {
             </div>
           </div>
         </el-link>
+        <!-- 评分组件 -->
+        <div class="baike-ratings">
+          <el-rate
+              v-model="ratings[baike.keyword]"
+              clearable
+              @change="handleRateChange(baike.keyword, ratings[baike.keyword])"
+              :colors="['#ff4d4f', '#f7ba2a', '#52c41a']"
+              class="baike-rating"
+              :void-color="'#d5d5ff'"
+          />
+          <el-rate
+              v-model="favorites[baike.keyword]"
+              clearable
+              @change="handleFavoriteChange(baike.keyword, favorites[baike.keyword])"
+              :colors="['#ff4d4f','#ff4d4f','#ff4d4f']"
+              :max="1"
+              class="baike-favorite"
+              :void-icon="heartEmptyIcon"
+              :icons="[heartFilledIcon,heartFilledIcon,heartFilledIcon]"
+          />
+        </div>
       </div>
     </div>
   </main>
 </template>
 
 <style scoped>
+/* 父容器 */
 .baike-parent-container {
   width: 100%;
   min-height: 100%;
@@ -165,32 +221,35 @@ onUnmounted(() => {
   background-color: transparent;
 }
 
+/* 弹性百科容器 */
 .baike-container {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
 }
 
+/* 百科卡片 */
 .baike-card {
   position: absolute;
   width: 320px;
   background: #fff;
   border-radius: 12px;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-  overflow: hidden;
   transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
-
+/* 悬停效果 */
 .baike-card:hover {
   transform: translateY(-5px);
   box-shadow: 0 8px 15px rgba(0, 0, 0, 0.15);
 }
 
+/* 正文部分 */
 .baike-content {
   display: flex;
   flex-direction: column;
 }
 
+/* 图片包装 */
 .image-wrapper {
   width: 100%;
   height: 180px;
@@ -211,6 +270,7 @@ onUnmounted(() => {
   padding: 15px;
 }
 
+/* 标题 */
 .baike-title {
   font-size: 18px;
   font-weight: bold;
@@ -218,9 +278,30 @@ onUnmounted(() => {
   margin-bottom: 8px;
 }
 
+/* 详细描述 */
 .baike-description {
   font-size: 14px;
   color: #666;
   line-height: 1.5;
+}
+
+/* 独立评分组件 */
+.baike-ratings {
+  position: absolute;
+  width: 100%;
+  height: auto;
+  bottom: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(255,255,255,.8);
+  border-radius: 12px;
+  transform: translateX(0);
+}
+.baike-rating {
+  margin-left: 15px;
+}
+.baike-favorite {
+  margin-right: 10px;
 }
 </style>

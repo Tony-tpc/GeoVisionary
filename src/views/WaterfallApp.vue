@@ -19,12 +19,11 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref } from 'vue'
+import { shallowReactive, ref } from 'vue'
 import loading from '../assets/loading.png'
 import error from '../assets/error.png'
 import DialogList from './DialogList.vue'
 import WaterfallList from './WaterfallList.vue'
-
 
 // 侧边栏控制
 function useSlideBar() {
@@ -42,7 +41,7 @@ function useSlideBar() {
 // 侧边栏控制
 const { isOpen, handleToggleController } = useSlideBar()
 
-const options = reactive({
+const options = shallowReactive({
   // 唯一key值
   rowKey: 'id',
   // 卡片之间的间隙
@@ -51,6 +50,7 @@ const options = reactive({
   hasAroundGutter: true,
   // 卡片在PC上的宽度
   width: 320,
+  minHeight: 0.9 * window.innerHeight + 'px',
   // 自定义行显示个数，主要用于对移动端的适配
   breakpoints: {
     1200: {

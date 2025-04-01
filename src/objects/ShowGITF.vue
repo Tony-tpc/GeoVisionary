@@ -7,7 +7,7 @@
     />
     <div class="TimeLineBox">
         <div class="TimeLineBox_content">
-            <TimeLine bgcolor="light" second="10" :nowValue="nowValue" :yearArr="yearArr"
+            <TimeLine bgcolor="light" :second=10 :nowValue="nowValue" :yearArr="yearArr"
                 @handleNowValueChange="handleNowValueChange" />
         </div>
     </div>
@@ -121,49 +121,62 @@ function setupAdvancedLighting() {
     // 环境光
     ambientLight = new THREE.AmbientLight(0x404040);
     scene.add(ambientLight);
+
 }
 
 
 
 function loadModel() {
-    const loader = new GLTFLoader();
-    loader.load(
-        `/models/${query.id}.glb`,
-        (gltf) => {
-            isLoading.value = false;
-            model = gltf.scene;
-            model.scale.set(5, 5, 5);
-            model.position.set(0, 0, 0);
-            scene.add(model);
+  const loader = new GLTFLoader();
+  loader.load(
+      `/models/${query.id}.glb`,
+      (gltf) => {
+        isLoading.value = false;
+        model = gltf.scene;
+        model.scale.set(5, 5, 5);
+        model.position.set(0, 0, 0);
+        scene.add(model);
 
-            // 自动调整相机位置
-            const box = new THREE.Box3().setFromObject(model);
-            const center = box.getCenter(new THREE.Vector3());
-            const size = box.getSize(new THREE.Vector3());
-            const maxDim = Math.max(size.x, size.y, size.z);
-            const fov = camera.fov * (Math.PI / 180);
-            let cameraZ = Math.abs(maxDim / (2 * Math.tan(fov / 2)));
+        // 计算模型的包围盒
+        const box = new THREE.Box3().setFromObject(model);
+        const center = box.getCenter(new THREE.Vector3());
+        const size = box.getSize(new THREE.Vector3());
+        const maxDim = Math.max(size.x, size.y, size.z);
+        const fov = camera.fov * (Math.PI / 180);
 
-            camera.position.set(center.x, center.y+100, cameraZ * 0.8);
-            controls.target.copy(center);
-            controls.update();
-            gltf.scene.traverse(child => {
-                if (child.isMesh) {
-                    child.castShadow = true;
-                    child.receiveShadow = true;
-                }
-            });
-        },
-        (xhr) => {
-            progress.value = xhr.loaded / xhr.total;
-        },
-        (error) => {
-            console.error('Error loading model:', error);
-        }
-    );
+        // **调整相机距离**
+        let cameraZ = Math.abs(maxDim / (2 * Math.tan(fov / 2))) * 1.5; // 放远一些
 
-    // 添加点击事件
-    renderer.domElement.addEventListener('click', onCanvasClick);
+        // **设置相机位置**
+        camera.position.set(center.x, center.y + maxDim * 0.5, cameraZ);
+
+        // **调整相机的 near 和 far 防止裁剪**
+        camera.near = 0.1;  // 设小一点，避免过近裁剪
+        camera.far = maxDim * 10; // 远一点，避免远处裁剪
+        camera.updateProjectionMatrix();
+
+        // **确保 OrbitControls 目标点正确**
+        controls.target.copy(center);
+        controls.update();
+
+        // 处理模型阴影
+        gltf.scene.traverse((child) => {
+          if (child.isMesh) {
+            child.castShadow = true;
+            child.receiveShadow = true;
+          }
+        });
+      },
+      (xhr) => {
+        progress.value = xhr.loaded / xhr.total;
+      },
+      (error) => {
+        console.error('Error loading model:', error);
+      }
+  );
+
+  // 添加点击事件
+  renderer.domElement.addEventListener('click', onCanvasClick);
 }
 
 function onCanvasClick(event) {

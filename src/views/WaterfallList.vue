@@ -12,7 +12,7 @@
       :animation-effect="options.animationEffect" :animation-duration="options.animationDuration"
       :animation-delay="options.animationDelay" :animation-cancel="options.animationCancel" :lazyload="options.lazyload"
       :load-props="options.loadProps" :cross-origin="options.crossOrigin" :align="options.align"
-      @afterRender="afterRender"
+      @afterRender="afterRender" :style="{ minHeight: options.minHeight}"
     >
       <template #default="{ item, url, index }">
         <div
@@ -28,9 +28,7 @@
               {{ item.name }}
             </h2>
             <div class="pt-3 flex justify-between items-center border-t border-t-gray-600 border-opacity-50">
-              <!-- <div class="text-gray-50">
-                $ {{ item.price }}
-              </div> -->
+
               <div>
                 <button
                   class="px-3 h-7 rounded-full bg-red-500 text-sm text-white shadow-lg transition-all duration-300 hover:bg-red-600"
@@ -44,13 +42,13 @@
       </template>
     </Waterfall>
 
-    <div v-show="!loading" class="flex justify-center bg-gray-900" style="padding: 2rem 0;">
-      <button
-        class="px-5 py-2 rounded-full bg-gray-700 text-md text-white cursor-pointer hover:bg-gray-800 transition-all duration-300"
-        @click="handleLoadMore">
-        加载更多
-      </button>
-    </div>
+<!--    <div v-show="!loading" class="flex justify-center bg-gray-900" style="padding: 2rem 0;">-->
+<!--      <button-->
+<!--        class="px-5 py-2 rounded-full bg-gray-700 text-md text-white cursor-pointer hover:bg-gray-800 transition-all duration-300"-->
+<!--        @click="handleLoadMore">-->
+<!--        加载更多-->
+<!--      </button>-->
+<!--    </div>-->
   </div>
 </template>
 
