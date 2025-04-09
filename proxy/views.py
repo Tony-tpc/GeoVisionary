@@ -6,6 +6,8 @@ from django.http import HttpResponse, JsonResponse
 from dotenv import load_dotenv
 from rest_framework.decorators import api_view
 
+from users.models import TextContent, RecommendationContent, Category, Video
+
 load_dotenv()
 DS_MODEL = os.environ.get("DS_MODEL")
 DS_KEY = os.environ.get("DS_KEY")
@@ -175,3 +177,51 @@ def trefle_plants(request):
             response = requests.get(url)
             response.raise_for_status()
             return JsonResponse(response.json(), status=200)
+
+@api_view(['GET'])
+def auto_add_baike(request):
+    keywords = [
+        # 新增自然地理类
+        # '气候类型', '大气环流', '洋流',
+        # '生态系统', '地质构造', '土壤类型', '自然灾害',
+        # '地球运动', '太阳辐射', '黄赤交角', '晨昏线',
+        # '二十四节气', '五带划分', '大气分层', '国际日期变更线',
+
+        # 新增人文地理类
+        # '城市化', '人口迁移', '交通区位', '可持续发展',
+        # '城市结构', '土地利用', '农业区位', '工业区位',
+        # '人口政策', '碳达峰', '碳中和',
+
+        # 新增综合技能类
+        # '等高线', '时区计算', '太阳高度角',
+        # '地理信息技术', '资源评价'
+    ]
+
+    for keyword in keywords:
+        response = requests.get('http://localhost:8040/proxy/baidu-baike/?keyword=' + keyword)
+        response.raise_for_status()
+        response_data = response.json()
+        keyword_abstract = response_data.get('abstract','')
+        TextContent.objects.get_or_create(keyword=keyword,description=keyword_abstract)
+        RecommendationContent.objects.get_or_create(content_type='text',content_key=keyword)
+        print(keyword)
+
+    return JsonResponse({"data":"数据更新完成！"}, status=200)
+
+
+@api_view(['GET'])
+def auto_add_bilibili(request):
+    bvid = input('请输入bvid:\n')
+    while bvid != '':
+        print(bvid)
+        p = input('请输入分p编号:\n')
+        title = input('请输入标题:\n')
+        description = input('请输入描述:\n')
+        topic = input('请输入考点:\n')
+        category = Category.objects.filter(category_type='topic',name=topic).first()
+        print(category)
+        Video.objects.get_or_create(bvid=bvid,title=title,description=description,topic=category, p=p)
+        RecommendationContent.objects.get_or_create(content_type='video',content_key=(bvid + '-1'),category=category)
+        bvid = input('请输入bvid:\n')
+
+    return JsonResponse({"data": 'ok'}, status=200)

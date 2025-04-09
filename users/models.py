@@ -195,9 +195,41 @@ class RecommendationContent(models.Model):
     content_type = models.CharField(max_length=10, choices=[('video', '视频'), ('text', '图文')])
     content_key = models.CharField(max_length=255)  # 视频的 bvid-p 或图文的 keyword
     p = models.PositiveIntegerField(null=True, blank=True)  # 分P编号，仅在收藏视频时使用
-    category = models.ForeignKey(Category, on_delete=models.CASCADE, limit_choices_to={'category_type': 'topic'})  # 关联考点分类
-    popularity = models.FloatField(default=0.0) # 受欢迎度，计算公式可以是点击率 × 0.3 + 收藏率 × 0.7
+    category = models.ForeignKey(Category, on_delete=models.CASCADE, limit_choices_to={'category_type': 'topic'}, null=True, blank=True)  # 关联考点分类
+    popularity = models.FloatField(default=0.0) # 受欢迎度
+    total_clicks = models.PositiveIntegerField(default=0)  # 总点击次数
+    weekly_clicks = models.JSONField(default=dict)  # 近 7 天点击记录
     created_at = models.DateTimeField(auto_now_add=True)
+
+    def update_clicks(self):
+        """ 在每天 0:00 调用，移除过期日期并初始化新日期的点击量 """
+        today = now().date().isoformat()  # 获取当前日期的字符串格式（如 "2025-03-20"）
+
+        # 只保留最近 7 天的数据
+        seven_days_ago = now().date() - timedelta(days=7)
+        self.weekly_clicks = {
+            date: count for date, count in self.weekly_clicks.items()
+            if date >= seven_days_ago.isoformat()
+        }
+        # 置零今日数据，并统计全部点击
+        if today not in self.weekly_clicks:
+            self.weekly_clicks[today] = 0
+        self.weekly_clicks["total"] = sum(v for k, v in self.weekly_clicks.items() if k != "total")
+
+        self.save(update_fields=["weekly_clicks"])
+
+    def record_click(self):
+        """ 记录一次点击 """
+        today = now().date().isoformat()
+
+        # 更新总点击次数
+        self.total_clicks += 1
+
+        # 更新最近 7 天点击数据
+        self.weekly_clicks[today] = self.weekly_clicks.get(today, 0) + 1
+        self.weekly_clicks['total'] = self.weekly_clicks.get('total', 0) + 1
+
+        self.save(update_fields=["total_clicks","weekly_clicks"])
 
     def save(self, *args, **kwargs):
         if self.content_type == "video" and self.p is not None:
@@ -344,7 +376,6 @@ class UserLearningBehavior(models.Model):
     def update_study_frequency(self):
         """更新过去 7 天的学习频率"""
         today = now().date().isoformat()  # 获取当前日期的字符串格式（如 "2025-03-20"）
-        print(today)
 
         # 更新今天的学习次数
         self.study_frequency_last_7_days[today] = self.study_frequency_last_7_days.get(today, 0) + 1

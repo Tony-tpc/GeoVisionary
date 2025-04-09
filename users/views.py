@@ -1,4 +1,6 @@
 import jwt
+import requests
+from django.utils.timezone import now
 
 from rest_framework import status
 from rest_framework.permissions import AllowAny
@@ -13,7 +15,8 @@ from django.db.models import Prefetch
 from .models import FrontendUser, Problem, ExamSet, Category, UserHistory, UserLearningBehavior, RecommendationContent, \
     UserRating, Video, TextContent, RecommendationScore, UserFavorite
 from .serializers import FrontendUserSerializer, ProblemSerializer, ExamSetSerializer, UserHistorySerializer, \
-    UserLearningBehaviorSerializer, RecommendationContentSerializer, UserRatingSerializer, UserFavoriteSerializer
+    UserLearningBehaviorSerializer, RecommendationContentSerializer, UserRatingSerializer, UserFavoriteSerializer, \
+    FeatureVectorSerializer
 
 
 @api_view(['POST'])
@@ -398,9 +401,10 @@ def log_user_activity(request):
     """记录用户的学习频率或点击行为"""
     try:
         data = request.data
-        user_id = data.get("user_id")  # 前端应提供用户 ID
-        content_type = data.get("content_type")  # 可能是 "video"、"text" 等
-        action = data.get("action")  # "study"（学习）或 "click"（点击）
+        user_id = data.get("user_id")
+        content_type = data.get("content_type")  # 只应是 video 或 text
+        content_key = data.get("content_key") # bvid-p 或 keyword
+        action = data.get("action")  # study 或 click
 
         # 查找用户和学习行为数据
         user = FrontendUser.objects.get(user_id=user_id)
@@ -408,8 +412,16 @@ def log_user_activity(request):
 
         if action == "study":
             user_learning.update_study_frequency()
-        elif action == "click" and content_type:
+        elif action == "click" and content_type and content_key:
             user_learning.update_content_click_rate(content_type)
+
+            click_rec_content,_ = RecommendationContent.objects.get_or_create(
+                content_type=content_type,
+                content_key=content_key,
+            )
+            click_rec_content.update_clicks()
+            click_rec_content.record_click()
+
         else:
             return Response({"error": "不合法的行为，或是错误的推荐内容类别"}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -551,22 +563,134 @@ def test_front_back_connection(request):
         return Response(status=status.HTTP_202_ACCEPTED)
 
 @api_view(['GET'])
-def label_encoder(request):
+def send_feature_data(request):
     # 获取构建特征向量的特征值
     users = FrontendUser.objects.all()
-    user_histories = UserHistory.objects.all()
-    user_favorites = UserFavorite.objects.all()
-    user_ratings = UserRating.objects.all()
+    # users_histories = UserHistory.objects.all() 用户答题历史记录，需要特征工程
+    users_favorites = UserFavorite.objects.all()
+    users_ratings = UserRating.objects.all()
     users_learning_behavior = UserLearningBehavior.objects.all()
     rec_contents = RecommendationContent.objects.all()
-    # 将信息序列化成为 json 格式
-    users_data = FrontendUserSerializer(users, many=True).data
-    histories_data = UserHistorySerializer(user_histories, many=True).data
-    favorites_data = UserFavoriteSerializer(user_favorites, many=True).data
-    ratings_data = UserRatingSerializer(user_ratings, many=True).data
-    learning_behaviors = UserLearningBehaviorSerializer(users_learning_behavior, many=True).data
-    contents_data = RecommendationContentSerializer(rec_contents, many=True).data
 
-    return Response({"data":{"users":users_data, "histories":histories_data,
-                             "favorites":favorites_data, "ratings":ratings_data,
-                             "learning_behaviors":learning_behaviors, "contents":contents_data}},status=status.HTTP_200_OK)
+    feature_data = []
+    target_data = []
+    # 将信息序列化成为 json 格式
+    for user in users:
+        # 用户基本信息
+        user_id = user.user_id
+        grade = user.grade
+        gender = user.gender
+        correct_problems = user.correct_problems
+
+        # 用户学习行为
+        user_learning_behavior = users_learning_behavior.filter(user_id=user_id).first()
+        # 不存在时使用空值
+        if not user_learning_behavior:
+            learning_interval = ''
+            study_frequency_last_7_days = {}
+            active_time_distribution = {}
+            content_click_rate = {}
+            updated_at = now()
+        else:
+            learning_interval = user_learning_behavior.last_learning_time_interval
+            study_frequency_last_7_days = user_learning_behavior.study_frequency_last_7_days
+            active_time_distribution = user_learning_behavior.active_time_distribution
+            content_click_rate = user_learning_behavior.content_click_rate
+            updated_at = user_learning_behavior.updated_at
+
+        # 推荐内容信息
+        for rec_content in rec_contents:
+            favorite_object = users_favorites.filter(content=rec_content,user_id=user_id).first()
+            rating_object = users_ratings.filter(content=rec_content,user_id=user_id).first()
+            # 无评价且无收藏，记录为 exposure （即未点击过）
+            clicked = 1.0
+            if not rating_object and not favorite_object:
+                clicked = 0.0
+
+            # 无评价时，评分设为 0，评价时间设为现在 （时间差为 0）
+            if not rating_object:
+                rating = 0
+                rating_time = now()
+            else:
+                rating = rating_object.rating
+                rating_time = rating_object.updated_at
+
+            # 有收藏设为 True，否则 False
+            if not favorite_object:
+                favorite = False
+            else:
+                favorite = True
+
+            # 存在记录，添加推荐内容基本信息
+            content_type = rec_content.content_type
+            content_key = rec_content.content_key
+            total_clicks = rec_content.total_clicks
+            created_at = rec_content.created_at
+
+            # 构建特征向量并加入特征矩阵
+            feature_vector = {
+                "user_id":user_id,
+                "grade":grade,
+                "gender":gender,
+                "correct_problems":correct_problems,
+                "learning_interval":learning_interval,
+                "study_frequency_last_7_days":study_frequency_last_7_days,
+                "active_time_distribution":active_time_distribution,
+                "content_click_rate":content_click_rate,
+                "updated_at":updated_at,
+                "content_type":content_type,
+                "content_key":content_key,
+                "total_clicks":total_clicks,
+                "created_at":created_at,
+                "rating":rating,
+                "rating_time":rating_time,
+                "favorite":favorite
+            }
+            target = {
+                "click":clicked,
+            }
+            feature_data.append(feature_vector)
+            target_data.append(target)
+    # 辅助数据处理信息
+    # need_one_hot = ["grade", "gender", "learning_interval", "content_type", "favorite"]
+    need_normalize = ["correct_problems", "study_frequency_last_7_days", "total_clicks", "rating"]
+    need_parse = ["study_frequency_last_7_days", "active_time_distribution", "content_click_rate"]
+    need_label_encode = ["user_id", "content_key", "grade", "gender", "learning_interval", "content_type", "favorite"]
+    need_process_datetime = {
+        "created_at":['days'],
+        "updated_at":['days', 'weekday'],
+        "rating_time":['hours']
+    }
+
+    configs = {
+        "sparse_fea_num": len(need_label_encode),
+        "need_parse": need_parse,
+        "need_normalize": need_normalize,
+        # "need_one_hot": need_one_hot,
+        "need_label_encode": need_label_encode,
+        "need_process_datetime": need_process_datetime,
+        "need_train": False
+    }
+
+    # 原始数据
+    raw_data = {
+        "inputs": FeatureVectorSerializer(feature_data, many=True).data,
+        "targets": target_data,
+        "configs": configs,
+    }
+
+    # 向模型端发送请求
+    model_url = 'http://127.0.0.1:5000/recommend'
+    response = requests.post(url=model_url, json=raw_data, headers={'Content-Type': 'application/json'})
+    if response.status_code == status.HTTP_200_OK:
+        response_data = response.json()
+        recommendations = response_data['recommendations']
+        for recommendation in recommendations:
+            rec_content = RecommendationContent.objects.get(content_key=recommendation['content_key'], content_type=recommendation['content_type'])
+            rec_object = RecommendationScore.objects.get_or_create(user_id=recommendation['user_id'], content=rec_content)[0]
+            rec_object.score = recommendation['predict_score']
+            rec_object.save(update_fields=['score'])
+    else:
+        return Response(status=response.status_code)
+
+    return Response(response_data,status=status.HTTP_200_OK)

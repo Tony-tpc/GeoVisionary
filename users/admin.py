@@ -1,5 +1,6 @@
-from django.contrib import admin
+from django.contrib import admin, messages
 from django.utils.html import format_html
+from django.utils.timezone import now
 from import_export import resources
 from import_export.admin import ImportExportModelAdmin
 from .models import FrontendUser, Category, ExamSet, Problem, UserHistory, UserConversation, APIConfig, Video, \
@@ -84,7 +85,7 @@ class FrontendUserAdmin(admin.ModelAdmin):
 admin.site.register(FrontendUser,FrontendUserAdmin)
 
 # 分类管理
-class CategoryAdmin(admin.ModelAdmin):
+class CategoryAdmin(ImportExportModelAdmin):
     list_display = ['get_name','get_category_type']
     list_per_page = 10
     list_filter = ['category_type']
@@ -100,6 +101,12 @@ class CategoryAdmin(admin.ModelAdmin):
         return obj.name
     get_name.short_description = '名称'
     get_name.admin_order_field = 'name'
+
+    # 自定义导入导出行为
+    class ProxyResource(resources.ModelResource):
+        class Meta:
+            model = Category
+    resource_class = ProxyResource
 
 admin.site.register(Category,CategoryAdmin)
 
@@ -136,7 +143,6 @@ class ExamSetAdmin(ImportExportModelAdmin):
     get_created_at.short_description = '建立时间'
     get_created_at.admin_order_field = 'created_at'
 
-    # 自定义导入导出行为
     class ProxyResource(resources.ModelResource):
         class Meta:
             model = ExamSet
@@ -398,6 +404,7 @@ admin.site.register(Video, VideoAdmin)
 # 图文信息表管理
 class TextContentAdmin(ImportExportModelAdmin):
     list_display = ['get_keyword', 'get_description', 'get_topic']
+    list_per_page = 10
     search_fields = ['keyword', 'description']
 
     def get_keyword(self, obj: TextContent):
@@ -423,10 +430,12 @@ admin.site.register(TextContent, TextContentAdmin)
 
 # 推荐内容分类表管理
 class RecommendationContentAdmin(ImportExportModelAdmin):
-    list_display = ['get_content_type', 'get_content_key', 'get_category', 'get_popularity', 'get_created_at']
+    list_display = ['get_content_type', 'get_content_key', 'get_category', 'get_popularity',
+                    'get_total_clicks', 'get_weekly_clicks', 'get_created_at']
     list_per_page = 10
     list_filter = ['category', 'created_at']
     search_fields = ['content_key', 'category__name']
+    actions = ['update_popularity_button']
 
     def get_content_type(self, obj: RecommendationContent):
         return obj.get_content_type_display()
@@ -439,7 +448,7 @@ class RecommendationContentAdmin(ImportExportModelAdmin):
     get_content_key.admin_order_field = 'content_key'
 
     def get_category(self, obj: RecommendationContent):
-        return obj.category.name
+        return obj.category.name if obj.category else "暂无"
     get_category.short_description = '考点类别'
     get_category.admin_order_field = 'category__name'
 
@@ -449,9 +458,70 @@ class RecommendationContentAdmin(ImportExportModelAdmin):
     get_created_at.admin_order_field = 'created_at'
 
     def get_popularity(self, obj: RecommendationContent):
-        return obj.popularity
+        return round(obj.popularity, 5)
     get_popularity.short_description = '受欢迎度'
     get_popularity.admin_order_field = 'popularity'
+
+    def get_total_clicks(self, obj: RecommendationContent):
+        return obj.total_clicks
+    get_total_clicks.short_description = '总点击数'
+    get_total_clicks.admin_order_field = 'total_clicks'
+
+    def get_weekly_clicks(self, obj: RecommendationContent):
+        return format_html(",".join([f"<b>{key}</b>: {value}" for key, value in obj.weekly_clicks.items()]) if obj.weekly_clicks.items() else '暂无')
+    get_weekly_clicks.short_description = '近 7 天点击数'
+
+    def update_popularity_button(self, request, queryset=None):
+        """管理员点击按钮后，更新所有推荐内容的受欢迎度"""
+        self.update_popularity()
+        self.message_user(request, "所有推荐内容的受欢迎度已成功更新！", level=messages.SUCCESS)
+
+    update_popularity_button.short_description = "更新受欢迎度"
+    update_popularity_button.type = 'success'
+    update_popularity_button.icon = 'el-icon-star-off'
+
+    def update_popularity(self):
+        # 当访问管理界面时，更新所有推荐内容的受欢迎度（公式位于 markdown 中）
+        m = 10 # 贝叶斯平滑系数
+        decay_factor = 0.98 # 时间衰减系数 decay_factor
+        click_weight = 0.2 # 点击权重 W_click
+        fav_weight = 0.4 # 收藏权重 W_fav
+        rating_weight = 0.4 # 评价权重 W_rating
+        weekly_weight = 0.3 # 近 7 天评价权重 W_recent_rating
+
+        updated_rec_contents = [] # 用于最后大更新数据库
+        rec_contents = RecommendationContent.objects.all()
+        # 计算全局好评率 p0（避免过低评分权重）
+        global_avg_rating = UserRating.objects.filter(rating__gte=4).count() / max(UserRating.objects.count(), 1)
+        for rec_content in rec_contents:
+            rec_content.update_clicks() # 更新近 7 天点击数字典
+            rec_content_favorite = UserFavorite.objects.filter(content=rec_content).count()
+            rec_content_clicks = rec_content.total_clicks # total_clicks
+
+            rec_content_ratings = UserRating.objects.filter(content=rec_content)
+            rec_content_total_ratings = rec_content_ratings.count() # total_ratings
+            rec_content_good_ratings = rec_content_ratings.filter(rating__gte=4).count() # good_ratings
+
+            good_rating_ratio = (rec_content_good_ratings + m * global_avg_rating) / (rec_content_total_ratings + m)
+            good_rating_weighted = good_rating_ratio * (rec_content_total_ratings + 1)  # 平衡权重
+
+            # 综合考量点击数、收藏数、好评数
+            popularity = (
+                    click_weight * rec_content_clicks +
+                    fav_weight * rec_content_favorite +
+                    rating_weight * good_rating_weighted
+            )
+
+            # 时间衰减修正
+            days_since_creation = (now().date() - rec_content.created_at.date()).days
+            time_decay = decay_factor ** days_since_creation
+
+            # 考虑时间衰减
+            popularity = popularity * time_decay + weekly_weight * rec_content.weekly_clicks.get("total", 0)
+            rec_content.popularity = popularity
+            updated_rec_contents.append(rec_content)
+
+        RecommendationContent.objects.bulk_update(updated_rec_contents, ['popularity'])
 
     class ProxyResource(resources.ModelResource):
         class Meta:
@@ -466,6 +536,7 @@ class RecommendationScoreAdmin(ImportExportModelAdmin):
     list_per_page = 10
     list_filter = ['content__content_key']
     search_fields = ['user__username', 'content__content_key']
+    ordering = ('user', '-score')  # 先按用户分组，再按分数降序
 
     def get_user(self, obj: RecommendationScore):
         return obj.user.username

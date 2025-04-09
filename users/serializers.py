@@ -91,3 +91,26 @@ class UserLearningBehaviorSerializer(serializers.ModelSerializer):
         model = UserLearningBehavior
         fields = ["user", "last_learning_time_interval", "study_frequency_last_7_days",
                   "topic_proficiency", "active_time_distribution", "content_click_rate", "updated_at"]
+
+# 特征向量序列化器
+class FeatureVectorSerializer(serializers.Serializer):
+    user_id = serializers.UUIDField()
+    grade = serializers.CharField()
+    gender = serializers.CharField()
+    correct_problems = serializers.IntegerField()
+    questions_id = serializers.IntegerField(required=False)
+    questions_category = serializers.CharField(required=False)
+    question_type = serializers.CharField(required=False)
+    is_correct = serializers.BooleanField(required=False)
+    learning_interval = serializers.CharField()
+    study_frequency_last_7_days = serializers.JSONField()
+    active_time_distribution = serializers.JSONField()
+    content_click_rate = serializers.JSONField()
+    updated_at = serializers.DateTimeField()
+    content_type = serializers.CharField()
+    content_key = serializers.CharField()
+    rating = serializers.IntegerField()
+    total_clicks = serializers.IntegerField()
+    created_at = serializers.DateTimeField()
+    rating_time = serializers.DateTimeField()
+    favorite = serializers.BooleanField()
