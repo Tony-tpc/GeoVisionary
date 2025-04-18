@@ -4,7 +4,8 @@ from django.utils.timezone import now
 from import_export import resources
 from import_export.admin import ImportExportModelAdmin
 from .models import FrontendUser, Category, ExamSet, Problem, UserHistory, UserConversation, APIConfig, Video, \
-    TextContent, RecommendationContent, RecommendationScore, UserLearningBehavior, UserRating, UserFavorite
+    TextContent, RecommendationContent, RecommendationScore, UserLearningBehavior, UserRating, UserFavorite, \
+    UserConversationHeader
 
 
 # 用户管理
@@ -287,6 +288,38 @@ class UserConversationAdmin(admin.ModelAdmin):
     get_llm_response.short_description = 'llm输出'
 
 admin.site.register(UserConversation,UserConversationAdmin)
+
+class UserConversationHeaderAdmin(admin.ModelAdmin):
+    list_display = ['get_frontend_user','get_precursor_id','get_timestamp','get_user_message','get_llm_summary']
+    list_per_page = 10
+    search_fields = ['frontend_user__username','precursor_id','timestamp']
+
+    def get_frontend_user(self, obj: UserConversationHeader):
+        return obj.frontend_user
+    get_frontend_user.short_description = '用户'
+    get_frontend_user.admin_order_field = 'frontend_user'
+
+    def get_precursor_id(self, obj: UserConversationHeader):
+        return obj.precursor_id
+    get_precursor_id.short_description = '前驱ID'
+    get_precursor_id.admin_order_field = 'precursor_id'
+
+    def get_timestamp(self, obj: UserConversationHeader):
+        return obj.timestamp
+    get_timestamp.short_description = '时间戳'
+    get_timestamp.admin_order_field = 'timestamp'
+
+    def get_user_message(self, obj: UserConversationHeader):
+        return obj.user_message
+    get_user_message.short_description = '用户输入'
+    get_user_message.admin_order_field = 'user_message'
+
+    def get_llm_summary(self, obj: UserConversationHeader):
+        return obj.llm_summary
+    get_llm_summary.short_description = 'llm输出'
+    get_llm_summary.admin_order_field = 'llm_summary'
+
+admin.site.register(UserConversationHeader,UserConversationHeaderAdmin)
 
 class APIConfigAdmin(admin.ModelAdmin):
     list_display = ['get_service_name','get_api_key','get_api_secret','get_app_id','get_host','get_path','get_created_at','get_last_used_at','get_usage_count','get_is_active']

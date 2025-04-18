@@ -154,6 +154,28 @@ class APIConfig(models.Model):
     def __str__(self):
         return f"{self.get_service_name_display()} - {'启用' if self.is_active else '禁用'}"
 
+def get_default_deepseek_config():
+    return APIConfig.objects.get(id=1).pk
+
+# 用户对话索引表
+class UserConversationHeader(models.Model):
+    frontend_user = models.ForeignKey(FrontendUser, on_delete=models.CASCADE)  # 用户
+    precursor_id = models.CharField(max_length=100,unique=True)  # 前驱会话ID
+    timestamp = models.DateTimeField(auto_now_add=True)  # 记录时间
+    user_message = models.TextField()  # 用户输入
+    llm_summary = models.TextField(null=True,blank=True)  # LLM 概要
+    model_config = models.ForeignKey(
+        APIConfig,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+    )
+
+    def __str__(self):
+        return (
+            f"{self.frontend_user.username} 会话 {self.precursor_id} - {self.timestamp}"
+        )
+
 # 视频信息表
 class Video(models.Model):
     bvid = models.CharField(max_length=20)

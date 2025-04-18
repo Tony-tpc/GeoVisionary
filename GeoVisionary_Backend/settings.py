@@ -218,9 +218,9 @@ SIMPLEUI_CONFIG = {
             'icon': 'fa fa-comments',
             'url': '/admin/users/userconversation/',
         },{
-            'name': '用户学习行为',
-            'icon': 'fa fa-book',  # 或 fa-clock-o/fa-graduation-cap
-            'url': '/admin/users/userlearningbehavior/',
+            "name": "用户对话索引",
+            "icon": "fas fa-comment-dots",
+            "url": "/admin/users/userconversationheader/",
         },{
             'name': 'API 管理',
             'icon': 'fa fa-cogs',
@@ -237,6 +237,10 @@ SIMPLEUI_CONFIG = {
             'name': '推荐内容',
             'icon': 'fa fa-thumbs-up',
             'url': '/admin/users/recommendationcontent/',
+        },{
+            'name': '用户学习行为',
+            'icon': 'fa fa-book',
+            'url': '/admin/users/userlearningbehavior/',
         },{
             'name': '用户评分',
             'icon': 'fa fa-star',

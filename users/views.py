@@ -386,7 +386,7 @@ def save_user_history(request):
 def load_user_history(request):
     user = request.data.get("user")
     if not user:
-        return Response({'message': '缺少用户信息，无法保存答题详情'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'message': '缺少用户信息，无法加载答题详情'}, status=status.HTTP_400_BAD_REQUEST)
 
     frontend_user = FrontendUser.objects.filter(user_id=user['user_id']).first()
     if not frontend_user:
@@ -495,9 +495,9 @@ def log_user_rating(request):
         UserFavorite.objects.bulk_create(new_favorite_objects)
 
     else:
-        return Response("未知评价类型！", status=status.HTTP_400_BAD_REQUEST)
+        return Response({"message": "未知评价类型！"}, status=status.HTTP_400_BAD_REQUEST)
 
-    return Response("用户评价已更新！",status=status.HTTP_200_OK)
+    return Response({"message": "用户评价已更新！"},status=status.HTTP_200_OK)
 
 @api_view(['POST'])
 def get_user_rating(request):
@@ -507,7 +507,7 @@ def get_user_rating(request):
     rating_type = data.get("rating_type")
     data = []
     if not user_id:
-        return Response({"message":"用户不存在！"},status=status.HTTP_400_BAD_REQUEST)
+        return Response({"message": "用户不存在！"},status=status.HTTP_400_BAD_REQUEST)
 
     if rating_type == 'rating':
         rated_contents = UserRating.objects.filter(content__content_type=content_type,user_id=user_id)
@@ -519,6 +519,9 @@ def get_user_rating(request):
         favorite_contents = UserFavorite.objects.filter(content__content_type=content_type,user_id=user_id)
         for content in favorite_contents:
             data.append(content.content.content_key)
+
+    else:
+        return Response({"message": "未知评价类型"},status=status.HTTP_400_BAD_REQUEST)
 
     return Response({"data":data},status=status.HTTP_200_OK)
 
