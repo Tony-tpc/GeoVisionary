@@ -168,7 +168,7 @@ onUnmounted(() => {
         <el-link :underline="false"
                  :href="baike.targetUrl"
                  target="_blank"
-                 @click="logActivity('click','article',baike.keyword)"
+                 @click="logActivity('click','text',baike.keyword)"
         >
           <div class="baike-content">
             <div class="image-wrapper">

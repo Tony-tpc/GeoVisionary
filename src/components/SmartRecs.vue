@@ -39,13 +39,14 @@
 
       <div class="information-display">
         <!--  视频部分  -->
-        <div class="video-indent"></div>
         <div class="videos-container" v-if="data.userChoice === 'videos'">
+          <div class="video-indent"></div>
           <div class="videos-title"></div>
           <BilibiliVideos :videos="displayVideos" :currentPage="currentPage"></BilibiliVideos>
           <div class="pagination-block">
             <el-pagination
                 v-model:current-page="currentPage"
+                hide-on-single-page
                 :page-size="pageSize"
                 :size="'default'"
                 :disabled="disabled"
@@ -65,6 +66,7 @@
           </div>
         </div>
 
+        <!--  返回按钮  -->
         <div class="reverse-button" v-if="data.userChoice === 'videos' || data.userChoice === 'articles'">
           <el-button class="circular-button" @click="handleBackButton">
             <el-icon size="30"><Back /></el-icon>
@@ -77,10 +79,10 @@
 
 <script setup>
 import { reactive, onMounted, ref, computed } from "vue";
-import ph1 from '@/assets/test/Rec-test-1.jpeg';
-import ph2 from '@/assets/test/Rec-test-2.jpeg';
-import ph3 from '@/assets/test/Rec-test-3.jpeg';
-import ph4 from '@/assets/test/Rec-test-4.jpeg';
+import ph1 from '@/assets/smart-images/Rec-1.jpeg';
+import ph2 from '@/assets/smart-images/Rec-2.jpeg';
+import ph3 from '@/assets/smart-images/Rec-3.jpeg';
+import ph4 from '@/assets/smart-images/Rec-4.jpeg';
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { gsap } from "gsap";
 import ColorThief from "colorthief";
@@ -89,7 +91,7 @@ import BaiduBaike from "@/components/BaiduBaike.vue";
 import BilibiliVideos from "@/components/BilibiliVideos.vue";
 import ScrollButton from "@/components/ScrollButton.vue";
 import Loading from "@/components/Loading.vue"
-import { logActivity, getRecommendations } from "@/store/usefulFunction.js";
+import { getRecommendations } from "@/store/usefulFunction.js";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -103,7 +105,7 @@ const data = reactive({
 const currentPage = ref(1); // 当前页面
 const disabled = ref(false); // 禁用分页
 const total = computed(() => data.videos.length) // 视频总数量
-const pageSize = ref(16); // 页面视频数量
+const pageSize = ref(12); // 页面视频数量
 const lastIndex = computed(() => currentPage.value * pageSize.value); // 当前页最后一个视频下标（不包括）
 
 // 展示视频内容
@@ -358,5 +360,6 @@ onMounted(() => {
   display: flex;
   justify-content: center;
   align-items: center;
+  padding: 20px;
 }
 </style>

@@ -156,7 +156,7 @@ const updateCursor = () => {
   } else if (thinkDom) {
     pos.y = rect.top - domRect.top + 45;
   } else {
-    pos.y = rect.top - domRect.top - 4;
+    pos.y = rect.top - domRect.top;
     pos.x = rect.left - domRect.left + 82;
   }
   textNode.remove();

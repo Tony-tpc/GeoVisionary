@@ -1,6 +1,6 @@
 <template>
 <!--  导航栏开始-->
-      <div class="navigator" id="navigator">
+      <div class="navigator" id="navigator" ref="navigator">
           <div style="padding-left: 80px">
             <el-menu
                 class="menu-no-border"
@@ -131,6 +131,7 @@ const route = useRoute();
 const TopChangeMode = ref(6200);
 const isLoading = ref(false);
 const showAnimation = ref(false);
+const navigator = ref(null);
 provide('TopChangeMode',TopChangeMode);
 provide('isLoading',isLoading);
 
@@ -140,6 +141,7 @@ let ticking = false;
 // 更换主题
 const updateTheme = throttle(() => {
   const noNeedForDarkTheme = data.activeIndex === '/navigator/landform' || data.activeIndex === '/navigator/moon-phase' || data.activeIndex === '/navigator/galaxy' || data.activeIndex === '/navigator/insight-lab';
+
   // 之后可根据需要改变主题切换逻辑
   if (data.activeIndex === '/navigator/geo-graph' || data.activeIndex === '/navigator/personal') {
     data.isDarkMode = true;
@@ -156,6 +158,14 @@ const updateTheme = throttle(() => {
             || data.scrollY > (TopChangeMode.value + 6.3 * window.innerHeight - 140); // 进入第二屏或第四屏时，切换深色模式
         data.logo = data.isDarkMode? darkLogo : lightLogo;
         ticking = false;
+        if (data.scrollY > window.innerHeight - 50 && data.activeIndex === '/navigator/world-map')
+        {
+          navigator.value.style.opacity = '0';
+          navigator.value.style.display = 'none';
+        } else if (data.activeIndex === '/navigator/world-map'){
+          navigator.value.style.opacity = '1';
+          navigator.value.style.display = 'block';
+        }
       });
     }
   }
@@ -164,6 +174,9 @@ const updateTheme = throttle(() => {
 // 保持选中菜单颜色
 const handleSelect = (index) => {
   data.activeIndex = index;
+  if (data.activeIndex !== '/navigator/galaxy') {
+    setTimeout(() => location.reload(), 200);
+  }
 };
 
 // 退出登录
@@ -196,8 +209,9 @@ const loadAnimation = () => {
 // 检测是否播放动画
 const checkAnimationCondition = async (path) => {
   const scrollTop = localStorage.getItem('scrollPosition');
-  const needLoading = path === '/navigator/smart-recs' || path === '/navigator/insight-lab' || path === '/navigator/geo-graph'
-  const noNeedLoading = path === '/navigator/landform' || path === '/navigator/moon-phase' || path === '/navigator/galaxy' || path === '/navigator/world-map'
+  const needLoading = path === '/navigator/smart-recs' || path === '/navigator/insight-lab' || path === '/navigator/geo-graph';
+  const noNeedLoading = path === '/navigator/landform' || path === '/navigator/moon-phase' || path === '/navigator/galaxy' || path === '/navigator/world-map';
+
   if (!noNeedLoading && (scrollTop === '0' || needLoading)) {
     showAnimation.value = true;
     loadAnimation()

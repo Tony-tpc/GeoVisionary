@@ -177,8 +177,7 @@ export default {
   left: 15%;
   width: 550px;
   height: auto;
-  z-index: 5;
   opacity: 0;
-  z-index: 99999 !important;
+  z-index: 99999;
 }
 </style>

@@ -58,7 +58,7 @@
                 @keydown="handleKeydown"
                 id="textInputArea"
             />
-            <el-button v-if="!isGenerating" type="primary" @click="handleChatWithLocalLLM" class="submit-btn" :disabled="data.isDisabled">
+            <el-button v-if="!isGenerating" type="primary" @click="handleChatWithLLM" class="submit-btn" :disabled="data.isDisabled">
               <el-icon  ><Top /></el-icon>
             </el-button>
             <el-button v-else type="primary" @click="handleStopLLMGeneration" class="stop-btn">
@@ -117,7 +117,7 @@
                  finish="delay"
         />
       </div>
-      <div id="graph-container" style="width: 100%; height: 90%; border: 1px solid #ddd;position: absolute;top: 10%;"></div>
+      <div id="graph-container" class="graph-container"></div>
     </div>
   </section>
 </template>
@@ -168,6 +168,8 @@ let controller = new AbortController();  // 用于控制请求
 let reader = null;  // 读取流
 const autoScroll = ref(true); // 输出自动滚动到底部
 const outputAreaRef = ref(null); // 拖动/复原输出框
+const isOldchat = ref(0);
+const isApiAvailable = ref(localStorage.getItem('isApiavailable'));
 
 // 便捷按钮
 const inputBoxes = ref([]); // 标签盒
@@ -231,9 +233,7 @@ const updatePosition = () => {
 };
 
 // 历史记录
-const chatHistory = ref([
-  { role: "system", content: "你是一位经验丰富的高中地理老师，你的学生目前遇到了一些地理问题，你需要耐心地帮助他解决问题，并通俗易懂地讲解。记住，你只能用中文思考和回答。如果他输入的是其他方面的问题，也请像个老师一样耐心教导他。" }
-]);
+const chatHistory = ref([]);
 
 // 模拟流式输出效果
 const typeEffect = async () => {
@@ -402,10 +402,17 @@ const chatWithLLM = () => {
 
     // 连接建立后发送请求
     ws.onopen = () => {
+      if (!isApiAvailable.value) {
+        ws.dispatchEvent(new Event('error'));
+        streamMessage.content = "未登录的用户";
+        throw new Error("未登录的用户");
+      }
       isThinkingActive = true;  // 允许动画运行
       ws.send(JSON.stringify({
-        messages: chatHistory.value,
-        llm: "ds"
+        isOldchat: isOldchat.value,
+        message: chatHistory.value,
+        llm: "dslocal",
+        user_id: userState.user.user_id,
       }));
     };
 
@@ -413,6 +420,7 @@ const chatWithLLM = () => {
     ws.onmessage = (event) => {
       try {
         const chunk = JSON.parse(event.data);
+        console.log(chunk)
         if (chunk.type === 'text') {
           if (chunk.content === '[DONE]') {
             console.log("流式结束");
@@ -527,7 +535,7 @@ const stopLLMGeneration = () => {
 };
 
 // 点击交互按钮
-const handleChatWithLocalLLM = () => {
+const handleChatWithLLM = () => {
   if (data.textInput || inputBoxes.value.length !== 0) {
     nextTick(() => {
       scrollToBottom(); // 发送后强制滚动
@@ -564,7 +572,7 @@ const handleKeydown = (e) => {
   if (e.key === "Enter") {
     if (!e.shiftKey && !isGenerating.value) {
       e.preventDefault();
-      handleChatWithLocalLLM();
+      handleChatWithLLM();
     }
   } else if (e.key === "Escape" && isGenerating.value) {
     handleStopLLMGeneration();
@@ -776,7 +784,7 @@ onMounted(() => {
           id: edge.id,
           from: edge.from,
           to: edge.to,
-          label: edge.label,
+          label: "关联",
           arrows: 'to',
           title: `Type: ${edge.label}\nProperties: ${JSON.stringify(edge.properties)}`
         }))
@@ -813,6 +821,22 @@ onMounted(() => {
       // 渲染图谱
       const container = document.getElementById('graph-container');
       const network = new Network(container, networkData, options);
+      let count = 0;
+
+      // 左移知识图谱，使得位置合适
+      network.on("stabilized", function () {
+        if (count !== 0) return;
+        const offsetX = window.innerWidth * 0.15;
+        const currentPos = network.getViewPosition();
+        network.moveTo({
+          position: {
+            x: currentPos.x + offsetX,
+            y: currentPos.y
+          },
+          scale: network.getScale()
+        });
+        count++;
+      });
 
       // 点击节点显示名称
       network.on("click", function (params) {
@@ -902,8 +926,8 @@ watch(() => data.displayEverything, () => {
 .tag-container {
   position: fixed;
   bottom: 11%;
-  left: 25%;
-  width: 52%;
+  left: 1%;
+  width: 32%;
   gap: 8px;
   opacity: 0;
   display: none;
@@ -935,8 +959,8 @@ watch(() => data.displayEverything, () => {
 .inputArea {
   position: fixed;
   bottom: 8%;
-  left: 25%;
-  width: 52%;
+  left: 1%;
+  width: 32%;
   font-size: 16px;
   border-radius: 50px !important;
   z-index: 11;
@@ -952,7 +976,7 @@ watch(() => data.displayEverything, () => {
 .submit-btn,.stop-btn {
   position: fixed;
   bottom: 9%;
-  right: 24%;
+  right: 68%;
   width: 30px;
   height: 30px;
   border-radius: 100%;
@@ -989,8 +1013,8 @@ watch(() => data.displayEverything, () => {
 .outputArea {
   position: fixed;
   top: 20%;
-  left: 25%;
-  width: 50%;
+  left: 1%;
+  width: 30%;
   height: 30%;
   color: #0d0f1a;
   border: 1px solid #0d0f1a;
@@ -1206,4 +1230,12 @@ canvas {
   letter-spacing: 1px;
 }
 
+/* 知识图谱 */
+.graph-container {
+  width: 75%;
+  height: 90%;
+  position: absolute;
+  top: 10%;
+  left: 25%;
+}
 </style>

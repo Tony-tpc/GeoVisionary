@@ -2,7 +2,7 @@
   <!--  首页 -->
   <section>
     <div class="container section1">
-      <video src="../assets/videos/Verge3D-Web-Interactive.mp4" loop autoplay muted loading="lazy" class="video1"></video>
+      <img src="../assets/home-images/月相.jpeg" loading="lazy" class="video1" alt=""/>
     </div>
     <div class="section1-title">
       月相
@@ -85,7 +85,6 @@ onMounted(() => {
   font-weight: bold;
   color: #fff;
   z-index: 2;
-  mix-blend-mode: difference;
 }
 
 /* 首页副标题 */
@@ -96,7 +95,6 @@ onMounted(() => {
   font-size: 32px;
   color: #fff;
   z-index: 2;
-  mix-blend-mode: difference;
 }
 
 /* 第二屏 */

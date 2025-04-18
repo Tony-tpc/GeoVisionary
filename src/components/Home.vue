@@ -100,7 +100,7 @@
         <p class="section2-text">
           通过智能化的<strong>3D 地形</strong>和<strong>星系展示</strong>模型，用户能够亲身体验地理与天文学的奥秘。在虚拟环境中，学生可以随时与<strong>地球地形</strong>交互，观察<strong>月相盈亏的动态变化</strong>，同时探索<strong>太阳系中行星的轨迹与相对位置</strong>。这种互动式的学习方式突破了传统书本和图表的限制，让知识更加<strong>生动直观</strong>，在沉浸式探索中激发学习兴趣，助力学生提升学习效率。
         </p>
-        <img src="/models/images/antelope_canyon.jpeg" alt="智绘天地" loading="lazy" class="section2-img1"/>
+        <img src="/models/images/羚羊峡谷.jpeg" alt="智绘天地" loading="lazy" class="section2-img1"/>
         <img src="../assets/home-images/solar.png" alt="智绘天地" loading="lazy" class="section2-img2"/>
       </div>
       <!--    万象图谱介绍  -->
@@ -144,16 +144,16 @@
         <!--    粒子背景 + 上、下、左、右四个视频  -->
         <div id="video-particles" class="particles-container">
           <div class="upper-left">
-            <video src="../assets/videos/Cesium-test.mp4" autoplay muted loop loading="lazy" class="video1"></video>
+            <img src="../assets/home-images/地形.jpg" loading="lazy" class="video1" alt=""/>
           </div>
           <div class="upper-right">
-            <video src="../assets/videos/Verge3D-Web-Interactive.mp4" autoplay muted loop loading="lazy" class="video2"></video>
+            <img src="../assets/home-images/月相.jpeg" loading="lazy" class="video2" alt=""/>
           </div>
           <div class="lower-left">
-            <video src="../assets/videos/Galaxy.mp4" autoplay muted loop loading="lazy" class="video3"></video>
+            <img src="../assets/home-images/星系.jpg" loading="lazy" class="video3" alt=""/>
           </div>
           <div class="lower-right">
-            <video src="../assets/videos/worldMap.mp4" autoplay muted loop loading="lazy" class="video4"></video>
+            <img src="../assets/home-images/地图.jpg" loading="lazy" class="video4" alt=""/>
           </div>
           <!--   文字介绍  -->
           <div>

@@ -230,7 +230,7 @@
 </template>
 
 <script setup>
-import {computed, onMounted, ref, watch} from 'vue';
+import {computed, onMounted, ref, watch, onUnmounted} from 'vue';
 import {gsap} from "gsap";
 import {ElMessageBox} from 'element-plus'
 import { Picture as IconPicture } from '@element-plus/icons-vue'
@@ -690,6 +690,10 @@ watch(() => props.isLoading, () => {
     submitted.value = false;
     gsap.set('.explanation', { display: 'none' });
   }
+})
+
+onUnmounted(() => {
+  emit('updateAnswer', userAnswers.value);
 })
 </script>
 

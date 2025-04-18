@@ -34,27 +34,51 @@ const categories = ref([
   },
   {
     id: "2-1",
-    name: "困难",
+    name: "物质运动和能量交换",
     type: "知识点",
-    value: { level: "hard", category: "knowledge" }
+    value: { topic: "第三章：自然环境中的物质运动和能量交换", category: "topic" }
   },
   {
     id: "2-2",
-    name: "中等",
+    name: "生产活动与地域联系",
     type: "知识点",
-    value: { level: "medium", category: "knowledge" }
+    value: { topic: "第七章：生产活动与地域联系", category: "topic" }
   },
   {
     id: "2-3",
-    name: "简单",
+    name: "地理环境与人类活动",
     type: "知识点",
-    value: { level: "easy", category: "knowledge" }
+    value: { topic: "第九章：区域地理环境与人类活动", category: "topic" }
+  },
+  {
+    id: "2-4",
+    name: "区域可持续发展",
+    type: "知识点",
+    value: { topic: "第十章：区域可持续发展", category: "topic" }
+  },
+  {
+    id: "2-5",
+    name: "自然灾害与防治",
+    type: "知识点",
+    value: { topic: "第十五章：自然灾害与防治", category: "topic" }
+  },
+  {
+    id: "2-6",
+    name: "中国地理",
+    type: "知识点",
+    value: { topic: "第十三章：中国地理", category: "topic" }
+  },
+  {
+    id: "2-7",
+    name: "世界地理",
+    type: "知识点",
+    value: { topic: "第十二章：世界地理", category: "topic" }
   },
   {
     id: "3-1",
     name: "新课标 I 卷",
     type: "来源",
-    value: {source: "新课标 I 卷", category: "source"}
+    value: { source: "新课标 I 卷", category: "source"}
   },
   {
     id: "3-2",
@@ -70,9 +94,9 @@ const categories = ref([
   },
   {
     id: "3-4",
-    name: "自主命题",
+    name: "全国乙卷",
     type: "来源",
-    value: { source: "自主命题", category: "source" }
+    value: { source: "全国乙卷", category: "source" }
   }
 ]);
 

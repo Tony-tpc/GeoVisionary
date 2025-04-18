@@ -18,6 +18,7 @@
 <!--                  :keyword="keywordList"/>-->
 <!--    </div>-->
   </div>
+  <v-chart class="chart" :option="option" />
 <!--    <el-col :span="6" class="menu-column">-->
 <!--      <h2>试题分类</h2>-->
 <!--      <el-menu-->
@@ -161,31 +162,91 @@ const data = reactive({
   // ],
 })
 
-const particlesContainer = ref(null)
-const colorThief = new ColorThief()
-const keywordList = ref(['地理','天文','地形','月相','工业','农业','水循环','GIS'])
+// const particlesContainer = ref(null)
+// const colorThief = new ColorThief()
+// const keywordList = ref(['地理','天文','地形','月相','工业','农业','水循环','GIS'])
+//
+// const updateBackground = async (img) => {
+//   if (!img) {
+//     particlesContainer.value.style.setProperty("--c1", "#fff");
+//     particlesContainer.value.style.setProperty("--c2", "#f0f0f0");
+//     particlesContainer.value.style.setProperty("--c3", "#e0e0e0");
+//     return;
+//   }
+//
+//   // 确保图片已加载，否则 ColorThief 可能会报错
+//   if (!img.complete || img.naturalWidth === 0) return;
+//
+//   try {
+//     const colors = await colorThief.getPalette(img, 3);
+//     const [c1, c2, c3] = colors.map(c => `rgb(${c[0]},${c[1]},${c[2]})`);
+//     particlesContainer.value.style.setProperty("--c1", c1);
+//     particlesContainer.value.style.setProperty("--c2", c2);
+//     particlesContainer.value.style.setProperty("--c3", c3);
+//   } catch (error) {
+//     console.error("ColorThief error:", error);
+//   }
+// };
 
-const updateBackground = async (img) => {
-  if (!img) {
-    particlesContainer.value.style.setProperty("--c1", "#fff");
-    particlesContainer.value.style.setProperty("--c2", "#f0f0f0");
-    particlesContainer.value.style.setProperty("--c3", "#e0e0e0");
-    return;
-  }
 
-  // 确保图片已加载，否则 ColorThief 可能会报错
-  if (!img.complete || img.naturalWidth === 0) return;
+import { use } from "echarts/core";
+import { CanvasRenderer } from "echarts/renderers";
+import { PieChart } from "echarts/charts";
+import {
+  TitleComponent,
+  TooltipComponent,
+  LegendComponent
+} from "echarts/components";
+import VChart, { THEME_KEY } from "vue-echarts";
+import {  provide } from "vue";
 
-  try {
-    const colors = await colorThief.getPalette(img, 3);
-    const [c1, c2, c3] = colors.map(c => `rgb(${c[0]},${c[1]},${c[2]})`);
-    particlesContainer.value.style.setProperty("--c1", c1);
-    particlesContainer.value.style.setProperty("--c2", c2);
-    particlesContainer.value.style.setProperty("--c3", c3);
-  } catch (error) {
-    console.error("ColorThief error:", error);
-  }
-};
+use([
+  CanvasRenderer,
+  PieChart,
+  TitleComponent,
+  TooltipComponent,
+  LegendComponent
+]);
+
+provide(THEME_KEY, "dark");
+
+const option = ref({
+  title: {
+    text: "Traffic Sources",
+    left: "center"
+  },
+  tooltip: {
+    trigger: "item",
+    formatter: "{a} <br/>{b} : {c} ({d}%)"
+  },
+  legend: {
+    orient: "vertical",
+    left: "left",
+    data: ["Direct", "Email", "Ad Networks", "Video Ads", "Search Engines"]
+  },
+  series: [
+    {
+      name: "Traffic Sources",
+      type: "pie",
+      radius: "55%",
+      center: ["50%", "60%"],
+      data: [
+        { value: 335, name: "Direct" },
+        { value: 310, name: "Email" },
+        { value: 234, name: "Ad Networks" },
+        { value: 135, name: "Video Ads" },
+        { value: 1548, name: "Search Engines" }
+      ],
+      emphasis: {
+        itemStyle: {
+          shadowBlur: 10,
+          shadowOffsetX: 0,
+          shadowColor: "rgba(0, 0, 0, 0.5)"
+        }
+      }
+    }
+  ]
+});
 
 
 // function formatTimestamp(timestamp) {
@@ -608,6 +669,9 @@ onBeforeUnmount( () => {
     inherits: false;
     initial-value: #e0e0e0;
   }
+}
+.chart {
+  height: 400px;
 }
 .container {
   position: relative;

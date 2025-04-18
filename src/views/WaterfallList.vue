@@ -25,7 +25,7 @@
           </div>
           <div class="px-4 pt-2 pb-4 border-t border-t-gray-800">
             <h2 class="pb-4 text-gray-50 group-hover:text-yellow-300">
-              {{ item.name }}
+              {{ decodeURIComponent(item.name) }}
             </h2>
             <div class="pt-3 flex justify-between items-center border-t border-t-gray-600 border-opacity-50">
 

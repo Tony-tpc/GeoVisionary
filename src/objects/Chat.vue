@@ -1,31 +1,62 @@
 <template>
-  <div class="chat-container">
-    <!-- 历史记录侧边栏 -->
-    <!-- <div class="history-sidebar" :class="{ 'visible': isHistoryOpen }">
-      <div class="history-header">
-        <h3>历史记录</h3>
-        <button @click="toggleHistory">×</button>
-      </div>
-      <div class="history-list">
-        <div v-for="(item, index) in chatHistory" :key="index"
-             class="history-item" @click="loadHistory(item)">
-          <span>{{ item.timestamp }}</span>
-          <div class="preview">{{ getHistoryPreview(item.messages) }}</div>
-        </div>
-      </div>
-    </div> -->
+  <!-- 历史记录侧边栏 -->
+  <div class="history-sidebar" :class="{ visible: isHistoryOpen }">
 
+    <div class="history-list">
+      <h3>历史记录</h3>
+
+      <template v-if="HistoryPreview.today?.length">
+        <h4>今天</h4>
+        <div v-for="item in HistoryPreview.today" :key="item.precursor_id" class="history-item"
+             @click="loadHistoryById(item.precursor_id)">
+          {{ formatPreview(item.user_msg) }}
+          <span class="timestamp">{{ formatTime(item.timestamp) }}</span>
+        </div>
+      </template>
+
+      <template v-if="HistoryPreview.last7days?.length">
+        <h4>近7天</h4>
+        <div v-for="item in HistoryPreview.last7days" :key="item.precursor_id" class="history-item"
+             @click="loadHistoryById(item.precursor_id)">
+          {{ formatPreview(item.user_msg) }}
+          <span class="timestamp">{{ formatTime(item.timestamp) }}</span>
+        </div>
+      </template>
+
+      <template v-if="HistoryPreview.last30days?.length">
+        <h4>近30天</h4>
+        <div v-for="item in HistoryPreview.last30days" :key="item.precursor_id" class="history-item"
+             @click="loadHistoryById(item.precursor_id)">
+          {{ formatPreview(item.user_msg) }}
+          <span class="timestamp">{{ formatTime(item.timestamp) }}</span>
+        </div>
+      </template>
+
+      <template v-if="HistoryPreview.earlier?.length">
+        <h4>更早</h4>
+        <div v-for="item in HistoryPreview.earlier" :key="item.precursor_id" class="history-item"
+             @click="loadHistoryById(item.precursor_id)">
+          {{ formatPreview(item.user_msg) }}
+          <span class="timestamp">{{ formatTime(item.timestamp) }}</span>
+        </div>
+      </template>
+
+    </div>
+  </div>
+
+  <div class="chat-container">
     <!-- 主聊天区域 -->
     <div class="chat-main">
+
+      <!-- 遮罩层 -->
+      <div class="overlay" v-if="isHistoryOpen" @click="toggleHistory"></div>
       <div class="chat-header">
         <button @click="toggleHistory" class="history-toggle-btn">☰</button>
         <h2>地理知识助手</h2>
       </div>
 
-
-
       <div class="chat-messages" ref="messagesContainer">
-        <!-- 新增的欢迎介绍 -->
+        <!-- 欢迎介绍 -->
         <div class="welcome-message" v-if="messages.length === 0">
           <div class="welcome-card">
             <DomeIcon class="welcome-content" theme="outline" size="48" fill="#0d534b" :strokeWidth="3" />
@@ -48,7 +79,7 @@
         </div>
 
         <div v-for="(msg, index) in messages" :key="index"
-          :class="['message', msg.role, { 'streaming': isStreaming && index === messages.length - 1 }]">
+             :class="['message', msg.role, { 'streaming': isStreaming && index === messages.length - 1 }]">
           <div class="message-header">
             <span v-if="msg.role === 'user'">我</span>
             <span v-else>AI助手</span>
@@ -67,7 +98,7 @@
 
           <!-- text -->
           <div class="message-content" :key="msg.content + updateFlag"
-            v-html="renderMarkdown(msg.displayContent || msg.content)">
+               v-html="renderMarkdown(msg.displayContent || msg.content)">
           </div>
 
 
@@ -79,38 +110,82 @@
         </div>
       </div>
 
+
       <div class="input-area">
-        <textarea v-model="inputText" @keydown.enter.exact.prevent="() => sendMessage()"
-          placeholder="输入地理位置问题，例如：巴黎的经纬度是多少？..." :disabled="isLoading" />
-        <button @click="() => sendMessage()" :disabled="isLoading">
-          <span v-if="isLoading">发送中...</span>
-          <span v-else>发送</span>
-        </button>
+        <div class="chat-control-area" :class="chatControlClass">
+
+          <!-- 新聊天按钮 -->
+          <button class="button" @click="() => RefreshChat()" :disabled="isLoading" @mouseenter="showTooltip('zoom')"
+                  @mouseleave="hideTooltip('zoom')">
+            <div class="button-box">
+              <span class="button-elem">
+                <svg viewBox="0 0 46 40" xmlns="http://www.w3.org/2000/svg">
+                  <path
+                      d="M46 20.038c0-.7-.3-1.5-.8-2.1l-16-17c-1.1-1-3.2-1.4-4.4-.3-1.2 1.1-1.2 3.3 0 4.4l11.3 11.9H3c-1.7 0-3 1.3-3 3s1.3 3 3 3h33.1l-11.3 11.9c-1 1-1.2 3.3 0 4.4 1.2 1.1 3.3.8 4.4-.3l16-17c.5-.5.8-1.1.8-1.9z">
+                  </path>
+                </svg>
+              </span>
+              <span class="button-elem">
+                <svg viewBox="0 0 46 40">
+                  <path
+                      d="M46 20.038c0-.7-.3-1.5-.8-2.1l-16-17c-1.1-1-3.2-1.4-4.4-.3-1.2 1.1-1.2 3.3 0 4.4l11.3 11.9H3c-1.7 0-3 1.3-3 3s1.3 3 3 3h33.1l-11.3 11.9c-1 1-1.2 3.3 0 4.4 1.2 1.1 3.3.8 4.4-.3l16-17c.5-.5.8-1.1.8-1.9z">
+                  </path>
+                </svg>
+              </span>
+            </div>
+          </button>
+
+          <!-- 输入框 -->
+          <textarea v-model="inputText" @keydown.enter.exact.prevent="() => sendMessage()"
+                    placeholder="输入地理位置问题，例如：巴黎的经纬度是多少？..." :disabled="isLoading" />
+
+          <!-- 发送按钮 -->
+          <button @click="() => sendMessage()" :disabled="isLoading">
+            <span v-if="isLoading">发送中...</span>
+            <span v-else>发送</span>
+          </button>
+          <div class="tooltips">
+            <div class="zoom-tooltip" :ref="(el) => tooltips.zoom = el">回到主页</div>
+            <div class="refresh-tooltip" :ref="(el) => tooltips.refresh = el">重置输出框</div>
+            <div class="convenient-tooltip" :ref="(el) => tooltips.convenient = el">
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, nextTick } from 'vue'
+import { ref, reactive, watch, nextTick, onMounted, onUnmounted, computed } from 'vue'
 import { marked } from 'marked'
 import hljs from 'highlight.js'
 import 'highlight.js/styles/github.css'
 import { Dome as DomeIcon } from "@icon-park/vue-next"
 import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
-import { userState } from '@/store/userStore'
+import { userState, setUser } from '@/store/userStore'
+
+
+onMounted(() => {
+  getHistoryPreview()
+})
+
 gsap.registerPlugin(ScrollTrigger)
 
-// const props = defineProps({
-//   worldContent: {
-//     type: String,
-//     required: true
-//   }
-// })
+const props = defineProps({
+  worldContent: {
+    type: String,
+    required: true
+  }
+})
+
+/**
+ * @description 变量说明
+ */
 // 配置后端地址
 const WS_URL = 'ws://localhost:8040/ws/chat/'
-
 // 响应式数据
 const isConnecting = ref(false)
 const reconnectAttempts = ref(0)
@@ -121,10 +196,158 @@ const isLoading = ref(false)
 const isStreaming = ref(false)
 const messagesContainer = ref(null)
 const isHistoryOpen = ref(false)
-const chatHistory = ref(JSON.parse(localStorage.getItem('chatHistory')) || [])
+const HistoryPreview = ref([])
 const coordinates = ref([])
 const updateFlag = ref(0)
-const isNewChat = ref(true)
+const isOldchat = ref(0)
+const hasInput = computed(() => inputText.value.trim() !== '')
+
+
+
+
+/**
+ * @description 历史记录相关
+ */
+const getHistoryPreview = async () => {
+  const ws = new WebSocket(WS_URL)
+  ws.onopen = () => {
+    try {
+      if (JSON.parse(localStorage.getItem('isApiavailable'))) {
+        const payload = {
+          user_id: userState?.user?.user_id || null,
+          task: "get_preview",
+        }
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify(payload))
+        } else {
+          console.error('WebSocket is not open')
+        }
+      }
+      else {
+        console.log("API不可用")
+      }
+    } catch (error) {
+      console.error('请求失败:', error)
+      ws.close();
+    } finally {
+      // extractCoordinates(assistantMessage.content)
+    }
+  }
+  ws.onmessage = (event) => {
+    HistoryPreview.value = reactive(JSON.parse(event.data))
+    console.log(HistoryPreview.value);
+    HistoryPreview.value = groupHistoryByTime()
+    console.log(HistoryPreview.value);
+    ws.close();
+  }
+}
+
+const formatPreview = (msg) => {
+  return msg.length > 20 ? msg.slice(0, 20) + '...' : msg;
+};
+const formatTime = (timestamp) => {
+  const date = new Date(timestamp.replace(/-/g, '/'));
+  date.setHours(date.getHours() + 8); // 加8小时
+  const pad = (n) => n.toString().padStart(2, '0');
+  return `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+};
+
+const toggleHistory = () => {
+  isHistoryOpen.value = !isHistoryOpen.value
+}
+
+const tooltips = reactive({});
+// 按钮信息提示（悬停触发）
+// 显示 tooltip
+const showTooltip = (key) => {
+  if (!tooltips[key]) return;
+  gsap.to(tooltips[key], {
+    opacity: 1,
+    duration: 0.2,
+  });
+};
+// 隐藏 tooltip
+const hideTooltip = (key) => {
+  if (!tooltips[key]) return;
+  gsap.to(tooltips[key], {
+    opacity: 0,
+    duration: 0.3,
+  });
+};
+
+const groupHistoryByTime = () => {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const oneDay = 24 * 60 * 60 * 1000;
+
+  const result = {
+    today: [],
+    last7days: [],
+    last30days: [],
+    earlier: [],
+  };
+
+  HistoryPreview.value.preview?.forEach(item => {
+    const itemDate = new Date(item.timestamp.replace(/-/g, '/'));
+    itemDate.setHours(itemDate.getHours() + 8);
+    const diffDays = Math.floor((itemDate - today) / oneDay);
+    if (diffDays === 0) {
+      result.today.push(item);
+    } else if (diffDays >= -6) {
+      result.last7days.push(item);
+    } else if (diffDays >= -29) {
+      result.last30days.push(item);
+    } else {
+      result.earlier.push(item);
+    }
+  });
+
+  const sortByTimestampDesc = (a, b) => new Date(b.timestamp) - new Date(a.timestamp);
+  result.today.sort(sortByTimestampDesc);
+  result.last7days.sort(sortByTimestampDesc);
+  result.last30days.sort(sortByTimestampDesc);
+  result.earlier.sort(sortByTimestampDesc);
+  return result;
+};
+
+
+const loadHistoryById = async (id) => {
+  const ws = new WebSocket(WS_URL)
+  ws.onopen = () => {
+    try {
+      if (JSON.parse(localStorage.getItem('isApiavailable'))) {
+        const payload = {
+          user_id: userState?.user?.user_id || null,
+          task: "get_full_history",
+          precursor_id: id,
+        }
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify(payload))
+        } else {
+          console.error('WebSocket is not open')
+        }
+      }
+      else {
+        console.log("API不可用")
+      }
+    } catch (error) {
+      console.error('请求失败:', error)
+      ws.close();
+    } finally {
+    }
+  }
+  ws.onmessage = (event) => {
+    const newMessages = JSON.parse(event.data).history;
+    isOldchat.value = JSON.parse(event.data).isOldchat
+    console.log(isOldchat.value);
+    messages.splice(0, messages.length, ...newMessages);
+    ws.close();
+  }
+}
+
+/**
+ * @description 聊天记录相关
+ */
 // Markdown 配置
 marked.setOptions({
   highlight: (code, lang) => {
@@ -132,12 +355,10 @@ marked.setOptions({
     return hljs.highlight(code, { language }).value
   },
 })
-
 // 消息发送逻辑
 const sendMessage = async (latitude = null, longitude = null) => {
   const ws = new WebSocket(WS_URL)
   var startcontent = false
-  var head = ""
   var Requireregion = false
   var question = ""
   var Showquestion = ""
@@ -162,8 +383,6 @@ const sendMessage = async (latitude = null, longitude = null) => {
 
   isLoading.value = true
   isStreaming.value = true
-
-
   // 添加用户消息
   messages.push({
     role: 'user',
@@ -172,32 +391,31 @@ const sendMessage = async (latitude = null, longitude = null) => {
   });
   // 创建助理消息占位
   const assistantMessage = { role: 'assistant', content: '', reasoning: '', isReasoningExpanded: true }
-  messages.push(assistantMessage)
-  scrollToBottom()
 
-
+  watch(messages, () => {
+    scrollToBottom();
+  });
   ws.onopen = () => {
     try {
       if (JSON.parse(localStorage.getItem("isApiavailable"))) {
+        messages.push(assistantMessage)
         // 构造WebSocket消息
         const payload = {
           user_id: userState?.user?.user_id || null,
           message: question,
-          isNewChat: isNewChat.value,
+          isOldchat: isOldchat.value,
         }
-
         // 消息发送
         if (ws.readyState === WebSocket.OPEN) {
           ws.send(JSON.stringify(payload))
-          isNewChat.value = false
+          isOldchat.value = 0
         } else {
-          console.error('WebSocket 未开启')
+          console.error('WebSocket is not open')
         }
       }
       else {
         isLoading.value = false
         isStreaming.value = false
-        saveHistory()
         ws.close();
         messages.push({
           role: 'system',
@@ -209,12 +427,11 @@ const sendMessage = async (latitude = null, longitude = null) => {
       if (!userState.user) {
         localStorage.setItem("isApiavailable", false);
       }
-      isNewChat.value = false
+      isOldchat.value = 0
     } catch (error) {
       console.error('请求失败:', error)
       isLoading.value = false
       isStreaming.value = false
-      saveHistory()
       ws.close();
       messages.push({
         role: 'system',
@@ -246,7 +463,10 @@ const sendMessage = async (latitude = null, longitude = null) => {
     if (chunk.completed) {
       isLoading.value = false
       isStreaming.value = false
-      saveHistory()
+      if (!isOldchat.value) {
+        getHistoryPreview()
+      }
+      isOldchat.value = chunk.session_id
       ws.close();
       if (!userState.user) {
         localStorage.setItem("isApiavailable", false);
@@ -266,8 +486,20 @@ const sendMessage = async (latitude = null, longitude = null) => {
     ws.close();
   };
 }
+/**
+ * @description 页面控制相关
+ */
 
+const onInput = () => {
+}
 
+const chatControlClass = computed(() => {
+  if (isOldchat.value && !hasInput.value) {
+    return 'slide-right' // 展示新聊天按钮
+  } else {
+    return 'slide-left'  // 展示发送按钮
+  }
+})
 // 添加折叠切换方法
 const toggleReasoning = (index) => {
   messages[index].isReasoningExpanded = !messages[index].isReasoningExpanded
@@ -292,24 +524,13 @@ const handleExampleClick = (example) => {
   sendMessage();
 };
 
-// 历史记录处理
-const saveHistory = () => {
-  const timestamp = new Date().toLocaleString()
-  chatHistory.value.push({
-    timestamp,
-    messages: [...messages],
-    coordinates: [...coordinates.value]
-  })
-  localStorage.setItem('chatHistory', JSON.stringify(chatHistory.value))
-}
-
-const getHistoryPreview = (messages) => {
-  return messages.slice(-2).map(m => m.content).join(' | ')
-}
-
 // 通用功能
 const renderMarkdown = (content) => marked(content)
 
+const RefreshChat = () => {
+  isOldchat.value = 0
+  messages.splice(0, messages.length)
+}
 const scrollToBottom = () => {
   nextTick(() => {
     if (messagesContainer.value) {
@@ -321,9 +542,6 @@ const scrollToBottom = () => {
   })
 }
 
-const toggleHistory = () => {
-  isHistoryOpen.value = !isHistoryOpen.value
-}
 
 // 暴露增强后的方法
 defineExpose({
@@ -344,16 +562,41 @@ defineExpose({
   display: flex;
 }
 
+.overlay {
+  position: absolute;
+  /* 改成相对于 .chat-main */
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.3);
+  z-index: 10;
+}
+
+/* 历史记录侧边栏 */
 .history-sidebar {
+  position: absolute;
+  top: 0;
+  right: 0;
   width: 280px;
-  border-right: 1px solid #e0e0e0;
-  background: var(--user-bg);
-  transition: transform 0.3s ease;
+  height: 100%;
+  background: #fff;
+  transform: translateX(100%);
+  transition: transform 0.3s ease-in-out;
+  z-index: 20;
+  box-shadow: -4px 0 8px rgba(0, 0, 0, 0.2);
+  color: #000000;
   overflow-y: auto;
+}
+
+.history-sidebar.visible {
+  transform: translateX(0);
 }
 
 .history-list {
   padding: 10px;
+
+  max-height: 100vh;
 }
 
 .history-item {
@@ -375,7 +618,7 @@ defineExpose({
   flex-direction: column;
   background: linear-gradient(180deg, #FFFFFF 0%, #F6F7F9 100%);
   transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-
+  position: relative;
 }
 
 .chat-header {
@@ -493,7 +736,7 @@ defineExpose({
   position: sticky;
   bottom: 0;
   display: flex;
-  gap: 12px;
+  gap: 15px;
   background: #fff;
   padding: 16px;
   box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.03);
@@ -501,7 +744,7 @@ defineExpose({
 
 textarea {
   flex: 1;
-  padding: 12px 16px;
+  padding: 12px 10px;
   border: 1px solid #e5e5e5;
   border-radius: 8px;
   min-height: 48px;
@@ -510,6 +753,7 @@ textarea {
   line-height: 1.5;
   background: #f8f9fa;
   transition: all 0.2s;
+  width: 260px;
 }
 
 button {
@@ -522,7 +766,8 @@ button {
   transition: all 0.2s;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
+  min-height: 48px;
 }
 
 button:active {
@@ -533,6 +778,26 @@ button::before {
   content: "➤";
   font-size: 14px;
 }
+
+.chat-control-area {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  width: 300%;
+  /* 让滑动区域能左右偏移 */
+  transition: transform 0.4s ease;
+}
+
+/* 滑动到左侧，露出“发送按钮” */
+.chat-control-area.slide-left {
+  transform: translateX(-20.33%);
+}
+
+/* 滑动到右侧，露出“新聊天按钮” */
+.chat-control-area.slide-right {
+  transform: translateX(0%);
+}
+
 
 .reasoning-container {
   margin: 8px 0;
@@ -582,7 +847,7 @@ button::before {
 .reasoning-content {
   transition: all 0.3s ease;
   max-height: 400px;
-  overflow-y: auto;
+  overflow-y: scroll;
 }
 
 /* 展开状态 */
@@ -750,5 +1015,109 @@ button::before {
 .example-questions li.disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+/* From Uiverse.io by xopc333 */
+.button {
+  display: block;
+  position: relative;
+  width: 56px;
+  height: 56px;
+  margin: 0;
+  overflow: hidden;
+  outline: none;
+  background-color: transparent;
+  cursor: pointer;
+  border: 0;
+  margin-left: 10px;
+}
+
+.button:before,
+.button:after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  inset: 7px;
+}
+
+.button:before {
+  border: 4px solid #19998a;
+  transition: opacity 0.4s cubic-bezier(0.77, 0, 0.175, 1) 80ms,
+  transform 0.5s cubic-bezier(0.455, 0.03, 0.515, 0.955) 80ms;
+}
+
+.button:after {
+  border: 4px solid #026055;
+  transform: scale(1.3);
+  transition: opacity 0.4s cubic-bezier(0.165, 0.84, 0.44, 1),
+  transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  opacity: 0;
+}
+
+.button:hover:before,
+.button:focus:before {
+  opacity: 0;
+  transform: scale(0.7);
+  transition: opacity 0.4s cubic-bezier(0.165, 0.84, 0.44, 1),
+  transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.button:hover:after,
+.button:focus:after {
+  opacity: 1;
+  transform: scale(1);
+  transition: opacity 0.4s cubic-bezier(0.77, 0, 0.175, 1) 80ms,
+  transform 0.5s cubic-bezier(0.455, 0.03, 0.515, 0.955) 80ms;
+}
+
+.button-box {
+  display: flex;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.button-elem {
+  display: block;
+  width: 20px;
+  height: 20px;
+  margin: 17px 18px 0 18px;
+  transform: rotate(180deg);
+  fill: #0d534b;
+}
+
+.button:hover .button-box,
+.button:focus .button-box {
+  transition: 0.4s;
+  transform: translateX(-56px);
+}
+
+/* 悬停提示文字 */
+.refresh-tooltip,
+.zoom-tooltip,
+.convenient-tooltip {
+  position: fixed;
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 8px 10px;
+  border-radius: 4px;
+  pointer-events: none;
+  opacity: 0;
+  right: 84%;
+  z-index: 102;
+  width: 60px;
+}
+
+.refresh-tooltip {
+  bottom: 80%;
+}
+
+.zoom-tooltip {
+  bottom: 82%;
+}
+
+.convenient-tooltip {
+  top: 10%;
+  right: 2.5%;
 }
 </style>

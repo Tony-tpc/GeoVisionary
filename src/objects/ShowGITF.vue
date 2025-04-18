@@ -1,6 +1,6 @@
 <template>
     <div ref="container" id="threeContainer"></div>
-    <LoadingProgress 
+    <LoadingProgress
       v-if="isLoading"
       :progress="progress"
       class="loading-progress"
@@ -14,20 +14,18 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, onBeforeMount, computed, toRefs } from "vue";
+import { ref, onMounted, onBeforeUnmount, onBeforeMount, computed, toRefs, provide,reactive } from "vue";
+import { useRoute } from "vue-router";
 import TimeLine from "@/components/TimeLine.vue";
 import LoadingProgress from "@/components/LoadingProgress.vue";
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-
+import { Sky } from 'three/addons/objects/Sky.js';
 const loadingProgress = ref(0);
 const loadingRef = ref(null);
 const isLoading = ref(true);
 const progress = ref(0);
-
-import { useRoute } from "vue-router";
-
 
 // 时间线相关变量
 const nowValue = ref("0:00");
@@ -35,13 +33,22 @@ const yearArr = ref([]);
 const container = ref(null);
 let directionalLight, ambientLight, hemisphereLight;
 const sunColor = new THREE.Color();
-const currentTime = ref({ hour: 12, minute: 0 }); // 默认中午12点
+const currentTime = ref({ 0:12, 1:0 }); // 默认中午12点
 // Three.js 相关变量
 let scene, camera, renderer, controls, model;
-
-
 const route = useRoute();
 let { query } = route
+
+// 天空系统相关
+let sky, sun;
+const skyParams = reactive({
+  turbidity: 10,    // 提高浊度使天空更明显
+  rayleigh: 3,      // 增强瑞利散射
+  mieCoefficient: 0.005,
+  mieDirectionalG: 0.7,
+  elevation: 45,    // 初始高度角
+  azimuth: 180
+});
 
 // 初始化时间线数据
 onBeforeMount(() => {
@@ -55,6 +62,7 @@ onMounted(() => {
     initThree();
     loadModel();
     animate();
+    updateLighting();
 });
 
 // 清理资源
@@ -68,7 +76,6 @@ onBeforeUnmount(() => {
 function initThree() {
     // 创建场景
     scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x101010);
 
     // 创建相机
     camera = new THREE.PerspectiveCamera(
@@ -80,13 +87,16 @@ function initThree() {
     camera.position.set(50, 50, 50);
 
     // 创建渲染器
-    renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer = new THREE.WebGLRenderer({ antialias: true,logarithmicDepthBuffer:true });
     renderer.setSize(container.value.clientWidth, container.value.clientHeight);
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 0.8;
     container.value.appendChild(renderer.domElement);
 
     // 添加控制器
     controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
 
     // // 添加环境光
     // const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
@@ -97,35 +107,73 @@ function initThree() {
     // directionalLight.position.set(5, 5, 5);
     // scene.add(directionalLight);
     setupAdvancedLighting();
+    initSky();
     // 窗口大小变化监听
     window.addEventListener('resize', onWindowResize);
 }
 
-// 新增光照设置函数
-function setupAdvancedLighting() {
-    // 移除旧的光照
-    if (directionalLight) scene.remove(directionalLight);
-    if (ambientLight) scene.remove(ambientLight);
+function initSky() {
+  // 创建天空系统
+  sky = new Sky();
+  sky.scale.setScalar(45000); // 根据场景调整比例
+  scene.add(sky);
 
-    // 半球光（模拟天空和地面反射）
-    hemisphereLight = new THREE.HemisphereLight(0xffffff, 0x444422, 0.6);
-    scene.add(hemisphereLight);
+  // 配置天空材质
+  const uniforms = sky.material.uniforms;
+  uniforms['turbidity'].value = skyParams.turbidity;
+  uniforms['rayleigh'].value = skyParams.rayleigh;
+  uniforms['mieCoefficient'].value = skyParams.mieCoefficient;
+  uniforms['mieDirectionalG'].value = skyParams.mieDirectionalG;
 
-    // 方向光（模拟太阳）
-    directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-    directionalLight.castShadow = true;
-    directionalLight.shadow.mapSize.width = 2048;
-    directionalLight.shadow.mapSize.height = 2048;
-    scene.add(directionalLight);
-
-    // 环境光
-    ambientLight = new THREE.AmbientLight(0x404040);
-    scene.add(ambientLight);
-
+  // 初始化太阳位置
+  sun = new THREE.Vector3();
+  updateSunPosition();
 }
 
+function setupAdvancedLighting() {
+  // 方向光配置（与天空同步）
+  directionalLight = new THREE.DirectionalLight(0xffffff, 1.2);
+  directionalLight.castShadow = true;
+  directionalLight.shadow.mapSize.width = 2048;
+  directionalLight.shadow.mapSize.height = 2048;
+  scene.add(directionalLight);
 
+  // 环境光配置
+  ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+  scene.add(ambientLight);
+}
 
+function updateSunPosition() {
+  const phi = THREE.MathUtils.degToRad(90 - skyParams.elevation);
+  const theta = THREE.MathUtils.degToRad(skyParams.azimuth);
+
+  // 更新太阳位置（天空和光源同步）
+  sun.setFromSphericalCoords(1, phi, theta);
+  sky.material.uniforms['sunPosition'].value.copy(sun);
+  directionalLight.position.copy(sun);
+}
+
+function updateLighting() {
+  const time = currentTime.value[0] + currentTime.value[1] / 96;
+
+  // 将时间转换为太阳角度（0-24小时对应-90到+90度）
+  skyParams.elevation = THREE.MathUtils.mapLinear(time, 0, 24, -75, 225);
+
+  // 动态调整大气参数
+  skyParams.turbidity = time > 6 && time < 18 ? 10 : 2;
+  skyParams.rayleigh = time > 6 && time < 18 ? 3 : 0.5;
+
+  // 更新天空参数
+  const uniforms = sky.material.uniforms;
+  uniforms['turbidity'].value = skyParams.turbidity;
+  uniforms['rayleigh'].value = skyParams.rayleigh;
+  uniforms['mieCoefficient'].value = skyParams.mieCoefficient;
+  uniforms['mieDirectionalG'].value = skyParams.mieDirectionalG;
+
+  updateSunPosition();
+}
+
+// 模型加载函数（保持原有逻辑，增加比例调整）
 function loadModel() {
   const loader = new GLTFLoader();
   loader.load(
@@ -133,39 +181,32 @@ function loadModel() {
       (gltf) => {
         isLoading.value = false;
         model = gltf.scene;
-        model.scale.set(5, 5, 5);
-        model.position.set(0, 0, 0);
-        scene.add(model);
 
-        // 计算模型的包围盒
+        // 调整模型比例（建议缩小以适应天空）
+        model.scale.set(5, 5, 5);
+        model.position.set(0, -5, 0);
+
+        // 包围盒计算
         const box = new THREE.Box3().setFromObject(model);
         const center = box.getCenter(new THREE.Vector3());
         const size = box.getSize(new THREE.Vector3());
+
+        // 相机位置调整
         const maxDim = Math.max(size.x, size.y, size.z);
         const fov = camera.fov * (Math.PI / 180);
+        const cameraZ = Math.abs(maxDim / (2 * Math.tan(fov / 2)));
+        camera.position.set(center.x, center.y + 10, cameraZ * 0.8);
+        camera.lookAt(center);
 
-        // **调整相机距离**
-        let cameraZ = Math.abs(maxDim / (2 * Math.tan(fov / 2))) * 1.5; // 放远一些
-
-        // **设置相机位置**
-        camera.position.set(center.x, center.y + maxDim * 0.5, cameraZ);
-
-        // **调整相机的 near 和 far 防止裁剪**
-        camera.near = 0.1;  // 设小一点，避免过近裁剪
-        camera.far = maxDim * 10; // 远一点，避免远处裁剪
-        camera.updateProjectionMatrix();
-
-        // **确保 OrbitControls 目标点正确**
-        controls.target.copy(center);
-        controls.update();
-
-        // 处理模型阴影
-        gltf.scene.traverse((child) => {
+        // 阴影处理
+        model.traverse((child) => {
           if (child.isMesh) {
             child.castShadow = true;
             child.receiveShadow = true;
           }
         });
+
+        scene.add(model);
       },
       (xhr) => {
         progress.value = xhr.loaded / xhr.total;
@@ -174,9 +215,7 @@ function loadModel() {
         console.error('Error loading model:', error);
       }
   );
-
-  // 添加点击事件
-  renderer.domElement.addEventListener('click', onCanvasClick);
+  renderer.domElement.addEventListener('click',onCanvasClick);
 }
 
 function onCanvasClick(event) {
@@ -226,6 +265,7 @@ const handleNowValueChange = (hourArr) => {
         let rettime = ref([0, 0])// hour minute
         rettime.value[0] = Math.floor(hourArr * 120 / 5);
         rettime.value[1] = Math.floor(hourArr * 120) % 5 * 24;
+
         // const intensity = hourArr.value[0] / 24;
         // model.traverse((child) => {
         //     if (child.isMesh) {
@@ -233,43 +273,11 @@ const handleNowValueChange = (hourArr) => {
         //     }
         // });
         currentTime.value = rettime.value;
-        console.log(currentTime.value);
 
         updateLighting();
     }
 };
 
-// 光照更新函数
-function updateLighting() {
-    const time = currentTime.value[0] + currentTime.value[1] / 60;
-
-    // 计算太阳高度角（0-24小时映射到0-2π弧度）
-    const sunAngle = (time / 24) * Math.PI * 2 - Math.PI / 2;
-
-
-    // 计算太阳位置
-    const sunDistance = 100;
-    const sunX = 0;
-    const sunY = sunDistance * Math.sin(sunAngle);
-    const sunZ = sunDistance * Math.cos(sunAngle);
-
-    // 更新方向光
-    directionalLight.position.set(sunX, sunY, sunZ);
-    directionalLight.target.position.set(0, 0, 0);
-
-    // 根据时间调整光照颜色和强度，强度曲线（钟形曲线）
-    const intensity = Math.max(0.5, Math.exp(-Math.pow((time - 12) / 4, 2)) * 1.5);
-    const color = calculateSunColor(time);
-
-    directionalLight.intensity = intensity * 1.5;
-    directionalLight.color.set(color);
-
-    // 调整环境光照
-    ambientLight.intensity = intensity * 0.3;
-    hemisphereLight.intensity = intensity * 0.5;
-    // const sunHelper = new THREE.DirectionalLightHelper(directionalLight);
-    // scene.add(sunHelper);
-}
 
 // 光照颜色计算函数
 function calculateSunColor(time) {
@@ -281,7 +289,6 @@ function calculateSunColor(time) {
 
     return sunColor.setHSL(hue, saturation, lightness);
 }
-
 </script>
 
 <style>

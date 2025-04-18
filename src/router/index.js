@@ -28,13 +28,9 @@ const router = createRouter({
     { path: '/404', name: '404',meta:{ title:'该页面不存在' }, component: () => import('../views/404.vue'),},
     { path:'/:pathMatch(.*)', redirect:'/404' }
   ],
-    // scrollBehavior(to,from,savedPosition) {
-    //     if (savedPosition) {
-    //         return savedPosition; // 返回上次保存的位置
-    //     } else {
-    //         return { top: 0 }; // 每次路由切换时滚动到顶部
-    //     }
-    // },
+    scrollBehavior(to,from,savedPosition) {
+      return { top: 0 }
+    },
 })
 
 // beforeEach表示跳转之前的一些操作
