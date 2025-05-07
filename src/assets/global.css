@@ -5,13 +5,12 @@ html {
 }
 
 body {
-    font-family: 'Microsoft YaHei', 'PingFang SC', 'Source Han Sans', sans-serif;
+    font-family: 'Chivo', sans-serif, 'Microsoft YaHei', 'PingFang SC', 'Source Han Sans';
     margin: 0;
     padding: 0;
     font-size: 14px;
     background-color: var(--bg-color);
     color: var(--text-color);
-    overflow-x: hidden;
 }
 
 canvas {
@@ -29,6 +28,11 @@ canvas {
     --el-menu-text-color: #1b4d3e !important; /* 深绿色字体 */
     --el-menu-hover-bg-color: #e6f7f1 !important; /* 淡青色悬停背景 */
     --el-menu-hover-text-color: #1b4d3e !important;
+    /* 个人中心页面新增配色方案 */
+    --text-dark: #2d3748;
+    --text-medium: #4a5568;
+    --text-light: #545f6f;
+    --background-light: #f8f9fa;
 }
 
 /* 深色主题 */

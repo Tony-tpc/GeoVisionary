@@ -96,7 +96,7 @@ const options = shallowReactive({
 const dialogVisible = ref(false)
 </script>
 
-<style>
+<style scoped>
 /* 添加全局样式 */
 html,
 body {

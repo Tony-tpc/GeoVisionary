@@ -118,8 +118,8 @@
         <div class="step-item">Step 3: 测试</div>
         <p class="section2-subtitle">找到薄弱点，针对性提升</p>
         <p class="section2-text"><strong>智能测评系统</strong>能够实时监控学生的学习进度，分析学生在不同知识点上的掌握程度。当学生进行习题测试时，系统不仅会自动批改，还会针对性地提供详细的解析和学习建议。通过深入分析学生的错误，<strong>AI系统</strong>会帮助学生找出<strong>薄弱环节</strong>，精准定位知识盲区，提供个性化的学习方案，帮助学生快速提升。</p>
-        <img src="@/assets/home-images/insight-lab-1.png" alt="探知问学" loading="lazy" class="section2-img1"/>
-        <img src="@/assets/home-images/insight-lab-2.png" alt="探知问学" loading="lazy" class="section2-img2" style="object-fit: cover"/>
+        <img src="../assets/home-images/insight-lab-1.png" alt="探知问学" loading="lazy" class="section2-img1"/>
+        <img src="../assets/home-images/insight-lab-2.png" alt="探知问学" loading="lazy" class="section2-img2" style="object-fit: cover"/>
       </div>
       <!--    智荐学堂介绍  -->
       <div class="page5">
@@ -127,8 +127,8 @@
         <div class="step-item">Step 4: 巩固</div>
         <p class="section2-subtitle">智能推荐，学习不再盲目</p>
         <p class="section2-text">学习不再是一成不变的重复过程，通过<strong>AI技术</strong>分析学生的学习轨迹，我们能够为每个学生量身定制学习路线。基于学生的学习进度和掌握情况，系统自动推荐<strong>最适合的学习资源</strong>，包括习题、文章、视频等。这样的个性化推荐让学生能够在正确的时间接触到<strong>最有价值的内容</strong>，从而有效巩固所学知识，进一步提升学习效率。</p>
-        <img src="@/assets/home-images/smart-recs-1.png" alt="智荐学堂" loading="lazy" class="section2-img1"/>
-        <img src="@/assets/home-images/smart-recs-2.png" alt="智荐学堂" loading="lazy" class="section2-img2"/>
+        <img src="../assets/home-images/smart-recs-1.png" alt="智荐学堂" loading="lazy" class="section2-img1"/>
+        <img src="../assets/home-images/smart-recs-2.png" alt="智荐学堂" loading="lazy" class="section2-img2"/>
       </div>
       <!--    第二屏与第三屏过渡文字  -->
       <div class="transition-words-2">
@@ -145,6 +145,7 @@
         <div id="video-particles" class="particles-container">
           <div class="upper-left">
             <img src="../assets/home-images/地形.jpg" loading="lazy" class="video1" alt=""/>
+            <!-- <video src="../assets/videos/videoName.mp4" autoplay muted loop class="video1"/> -->
           </div>
           <div class="upper-right">
             <img src="../assets/home-images/月相.jpeg" loading="lazy" class="video2" alt=""/>

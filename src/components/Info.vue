@@ -3,7 +3,7 @@
     <el-card>
       <el-descriptions class="margin-top" title="简介" :column="2" border>
         <template #extra>
-          <el-button type="primary" >操作</el-button>
+          <el-button type="primary" @click="handleEdit">操作</el-button>
         </template>
         <el-descriptions-item>
           <template #label>
@@ -31,7 +31,7 @@
             <i class="el-icon-odometer"></i>
             年级
           </template>
-          {{ age }}
+          {{ ageConfig[age]}}
         </el-descriptions-item>
         <el-descriptions-item>
           <template #label>
@@ -39,7 +39,7 @@
             <i class="el-icon-female"></i>
             性别
           </template>
-          <el-tag size="small">{{ sex }}</el-tag>
+          <el-tag size="small">{{ sexConfig[sex] }}</el-tag>
         </el-descriptions-item>
         <el-descriptions-item>
           <template #label>
@@ -48,8 +48,6 @@
           </template>
           {{ email }}
         </el-descriptions-item>
-
-
 
 
         <!-- <el-descriptions-item>
@@ -78,67 +76,62 @@
   </div>
 </template>
 
-<script>
-import multiavatar from '@multiavatar/multiavatar'; // 引入 multiavatar
-import { userState, setUser } from '@/store/userStore'
-import PersonalDia from "./PersonalDia.vue"; 
+<script setup>
+import { ref, onMounted } from 'vue';
+import multiavatar from '@multiavatar/multiavatar';
+import { userState } from '@/store/userStore.js';
 
-// import { userInfo } from "@/api/user.js";
-export default {
-  name: "Info",
-  data() {
-    return {
-      avatar: String,
-      account: String,
-      age: Number,
-      email: String,
-      mobilePhoneNumber: String,
-      area: String,
-      createDate: String,
-      nickname: String,
-      sex: String,
-      work: String,
-      // correct_problems: String,
-      design: String,
-    };
-  },
-  mounted() {
-    this.load();
-  },
-  methods: {
-    load() {
-      // this.correct_problems = userState.user.correct_problems;
-      this.createDate = new Date(userState.user.created_at).toISOString().split('T')[0];
-      this.email = userState.user.email;
-      this.sex = userState.user.gender ? userState.user.gender : "未完善";
-      this.age = userState.user.grade ? userState.user.grade : "未完善";
-      this.design = userState.user.remarks ? userState.user.remarks : "未完善";
-      this.account = userState.user.username;
-      this.nickname = userState.user.username;
-      
-      // userInfo(this.$route.params.id)
-      //   .then((res) => {
-      //     this.avatar = res.data.avatar;
-      //     this.account = res.data.account;
-      //     this.age = res.data.age;
-      //     this.email = res.data.email;
-      //     this.mobilePhoneNumber = res.data.mobilePhoneNumber;
-      //     this.area = res.data.area;
-      //     this.createDate = res.data.createDate;
-      //     this.nickname = res.data.nickname;
-      //     this.sex = res.data.sex == 1 ? "男" : "女";
-      //     this.work = res.data.work;
-      //     this.design = res.data.design;
-      //     this.hobby = res.data.hobby;
-      //   })
-      //   .catch((err) => {
-      //     console.log(err);
-      //   });
-      const svg = multiavatar(userState.user.user_id); // 使用 multiavatar 生成 SVG 图像
-      this.avatar = `data:image/svg+xml;base64,${btoa(svg)}`;
-    },
-  },
-};
+// 响应式数据
+const avatar = ref('');
+const account = ref('');
+const age = ref('');
+const email = ref('');
+const mobilePhoneNumber = ref('');
+const createDate = ref('');
+const nickname = ref('');
+const sex = ref('');
+const design = ref('');
+const emit = defineEmits(['edit']);
+
+// 性别配置
+const sexConfig = {
+  M: '男',
+  F: '女',
+  O: '保密',
+}
+
+// 年级配置
+const ageConfig = {
+  G1: '高一',
+  G2: '高二',
+  G3: '高三',
+}
+
+// 加载个人信息
+const load = () => {
+  // 从 store 初始化数据
+  createDate.value = new Date(userState.user.created_at).toISOString().split('T')[0];
+  email.value = userState.user.email;
+  sex.value = userState.user.gender ? userState.user.gender : "未完善";
+  age.value = userState.user.grade ? userState.user.grade : "未完善";
+  design.value = userState.user.remarks ? userState.user.remarks : "未完善";
+  account.value = userState.user.username;
+  nickname.value = userState.user.username;
+
+  // 生成头像
+  const svg = multiavatar(userState.user.user_id);
+  avatar.value = `data:image/svg+xml;base64,${btoa(svg)}`;
+}
+
+// 抛出信息编辑事件
+const handleEdit = () => {
+  emit('edit');
+}
+
+// 生命周期钩子
+onMounted(() => {
+  load();
+})
 </script>
 
 <style scoped>

@@ -26,7 +26,7 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { onMounted } from "vue";
 import { logActivity } from "@/store/usefulFunction.js";
 // import ShowGITF from "@/objects/ShowGITF.vue";
-import WaterfallApp from '@/views/WaterfallApp.vue'
+import WaterfallApp from '@/components/WaterfallApp.vue'
 gsap.registerPlugin(ScrollTrigger)
 
 onMounted(() => {

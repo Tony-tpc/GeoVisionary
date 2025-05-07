@@ -81,7 +81,7 @@
                     </span>
                     <template #dropdown>
                       <el-dropdown-menu>
-                        <el-dropdown-item><span class="menu-fonts" style="font-size: 16px" @click="router.push('/navigator/personal')">个人中心</span></el-dropdown-item>
+                        <el-dropdown-item><span class="menu-fonts" style="font-size: 16px" @click="handlePersonal">个人中心</span></el-dropdown-item>
                         <el-dropdown-item @click="handleLogout"><span class="menu-fonts" style="font-size: 16px">退出</span></el-dropdown-item>
                       </el-dropdown-menu>
                     </template>
@@ -109,7 +109,7 @@ import { reactive, onMounted, provide, ref, watch, nextTick, onBeforeUnmount } f
 import { User } from "@element-plus/icons-vue";
 import router from "@/router/index.js";
 import { useRoute } from "vue-router";
-import { userState, isLoggedIn, clearUser, autoLogin } from "@/store/userStore";
+import { userState, isLoggedIn, clearUser, autoLogin } from "@/store/userStore.js";
 import lightLogo from "@/assets/logos/mountain-fffdf3.svg";
 import darkLogo from "@/assets/logos/mountain-0d534b.svg";
 import { throttle } from "lodash";
@@ -141,6 +141,7 @@ let ticking = false;
 // 更换主题
 const updateTheme = throttle(() => {
   const noNeedForDarkTheme = data.activeIndex === '/navigator/landform' || data.activeIndex === '/navigator/moon-phase' || data.activeIndex === '/navigator/galaxy' || data.activeIndex === '/navigator/insight-lab';
+  const hideMap = data.activeIndex === '/navigator/world-map' && window.scrollY > window.innerHeight - 50;
 
   // 之后可根据需要改变主题切换逻辑
   if (data.activeIndex === '/navigator/geo-graph' || data.activeIndex === '/navigator/personal') {
@@ -149,6 +150,12 @@ const updateTheme = throttle(() => {
   } else if ( noNeedForDarkTheme ) {
     data.isDarkMode = false;
     data.logo = lightLogo;
+  } else if ( hideMap ) {
+    navigator.value.style.opacity = '0';
+    navigator.value.style.display = 'none';
+  } else if (data.activeIndex === '/navigator/world-map'){
+    navigator.value.style.opacity = '1';
+    navigator.value.style.display = 'block';
   } else {
     if (!ticking) {
       ticking = true;
@@ -158,14 +165,6 @@ const updateTheme = throttle(() => {
             || data.scrollY > (TopChangeMode.value + 6.3 * window.innerHeight - 140); // 进入第二屏或第四屏时，切换深色模式
         data.logo = data.isDarkMode? darkLogo : lightLogo;
         ticking = false;
-        if (data.scrollY > window.innerHeight - 50 && data.activeIndex === '/navigator/world-map')
-        {
-          navigator.value.style.opacity = '0';
-          navigator.value.style.display = 'none';
-        } else if (data.activeIndex === '/navigator/world-map'){
-          navigator.value.style.opacity = '1';
-          navigator.value.style.display = 'block';
-        }
       });
     }
   }
@@ -174,10 +173,14 @@ const updateTheme = throttle(() => {
 // 保持选中菜单颜色
 const handleSelect = (index) => {
   data.activeIndex = index;
-  if (data.activeIndex !== '/navigator/galaxy') {
-    setTimeout(() => location.reload(), 200);
-  }
 };
+
+// 进入个人中心
+const handlePersonal = () => {
+  const index = '/navigator/personal'
+  router.push(index);
+  handleSelect(index);
+}
 
 // 退出登录
 const handleLogout = () => {
@@ -210,7 +213,7 @@ const loadAnimation = () => {
 const checkAnimationCondition = async (path) => {
   const scrollTop = localStorage.getItem('scrollPosition');
   const needLoading = path === '/navigator/smart-recs' || path === '/navigator/insight-lab' || path === '/navigator/geo-graph';
-  const noNeedLoading = path === '/navigator/landform' || path === '/navigator/moon-phase' || path === '/navigator/galaxy' || path === '/navigator/world-map';
+  const noNeedLoading = path === '/navigator/landform' || path === '/navigator/moon-phase' || path === '/navigator/galaxy' || path === '/navigator/world-map' || path === '/navigator/personal';
 
   if (!noNeedLoading && (scrollTop === '0' || needLoading)) {
     showAnimation.value = true;

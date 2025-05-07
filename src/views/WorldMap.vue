@@ -20,34 +20,7 @@
 </template>
 
 <script setup>
-import { gsap } from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { onMounted } from "vue";
 import ShowWorld from "@/objects/ShowWorld.vue";
-gsap.registerPlugin(ScrollTrigger)
-
-onMounted(() => {
-  // 展示模型动画
-  ScrollTrigger.create({
-    trigger:'.section2',
-    start:'top-=200 top',
-    end:'+=200',
-    scrub:true,
-    animation:
-        gsap.timeline()
-            .to('.section1',{opacity:0})
-  });
-  ScrollTrigger.create({
-    trigger:'.section1',
-    start:'top top',
-    end:'+=300',
-    scrub:true,
-    animation:
-        gsap.timeline()
-            .from('.section2',{opacity:0})
-  });
-});
-
 </script>
 
 <style scoped>

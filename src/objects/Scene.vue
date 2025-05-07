@@ -230,7 +230,7 @@ export default {
             const planets = []; // List of Object3D of planets
             for(let planet of PLANETS) {
                 // Load 3D model
-                
+
                 let gltf = await loader.loadAsync(`/assets/gltf/${planet.name}.glb`);
                 let updateObject;
                 let userData = this.getUserDataFor(planet);
@@ -329,7 +329,7 @@ export default {
             if(mesh.userData.isPlanet) return mesh;
             return mesh.parent == null ? null : this.findMeshPlanet(mesh.parent);
         },
-        // Adds tick method to planet that runs every frame 
+        // Adds tick method to planet that runs every frame
         createUpdateLoop: function(planet) {
             planet.tick = (e) => {
                 // Planet orbit around its parent
@@ -345,8 +345,8 @@ export default {
                     planet.rotation.y = planet.userData.currentDistance / planet.userData.orbitalCircumference * Math.PI * 2;
                 }
 
-                // Planet rotation around its own axis 
-                planet.userData.currentRotation += this.idealizedSpeed 
+                // Planet rotation around its own axis
+                planet.userData.currentRotation += this.idealizedSpeed
                 ? (planet.userData.planetCircumference * e * 0.1)
                 : (planet.userData.rotationVelocity * e) * this.speed;
                 let rY = planet.userData.currentRotation / planet.userData.planetCircumference * Math.PI * 2;
@@ -357,7 +357,7 @@ export default {
                 else{
                     planet.children[0].rotation.y = rY;
                 }
-            };  
+            };
         },
         createScene: function() {
             const scene = new THREE.Scene();
@@ -365,12 +365,12 @@ export default {
             return scene;
         },
         // Create and configure camera and return it
-        createCamera: function () { 
+        createCamera: function () {
             const camera = new THREE.PerspectiveCamera(47, window.innerWidth / window.innerHeight, 0.1, 1000);
 
             return camera;
         },
-        // Create a separate scene with background 
+        // Create a separate scene with background
         createBackgroundScene: function() {
             const backgroundScene = new THREE.Scene();
             const loader = new THREE.CubeTextureLoader();
@@ -381,13 +381,13 @@ export default {
                 '/assets/universe.jpg',
                 '/assets/universe.jpg',
                 '/assets/universe.jpg',
-            ]);            
+            ]);
             backgroundScene.background = texture;
 
             return backgroundScene;
         },
-        // Create and configure renderer and return it 
-        createRenderer: function (scene, camera) { 
+        // Create and configure renderer and return it
+        createRenderer: function (scene, camera) {
             const renderer = new THREE.WebGLRenderer({
                 powerPreference: "high-performance",
                 canvas: this.$refs.canvas,
@@ -404,7 +404,7 @@ export default {
 
             return renderer;
         },
-        // Create and configure controls and return it 
+        // Create and configure controls and return it
         createControls: function (camera, renderer) {
             const controls = new OrbitControls(camera, renderer.domElement);
             controls.autoRotate = false;
@@ -477,24 +477,24 @@ export default {
             dirLight1.position.set(-250, 15, 0);
             dirLight1.lookAt(0, 0, 0);
             scene.add(dirLight1);
-            
+
             const dirLight2 = new THREE.DirectionalLight(0xffffff, 0.1);
             dirLight2.position.set(250, 15, 0);
             dirLight2.lookAt(0, 0, 0);
             scene.add(dirLight2);
-            
+
             const dirLight3 = new THREE.DirectionalLight(0xffffff, 0.1);
             dirLight3.position.set(0, 15, -250);
             dirLight3.lookAt(0, 0, 0);
             scene.add(dirLight3);
-            
+
             const dirLight4 = new THREE.DirectionalLight(0xffffff, 0.1);
             dirLight4.position.set(0, 15, 250);
             dirLight4.lookAt(0, 0, 0);
             scene.add(dirLight4);
         },
         // Set's the renderers size to current window size
-        resizeRenderer: function (renderer) { 
+        resizeRenderer: function (renderer) {
             renderer.setPixelRatio(window.devicePixelRatio);
             renderer.setSize(window.innerWidth, window.innerHeight);
         },
@@ -505,7 +505,7 @@ export default {
                 case "realtime":
                     this.speed = 1;
                     break;
-                case "day_sec": 
+                case "day_sec":
                     this.speed = 86400;
                     break;
                 case "mon_sec":

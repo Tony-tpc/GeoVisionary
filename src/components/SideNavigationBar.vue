@@ -255,7 +255,7 @@ const handleMouseLeave = () => {
 
 /* 选中状态 */
 .el-menu-item.is-active {
-  background: #40a2f6 !important; /* 适配你的主题色 */
+  background: #0D8EFF !important; /* 适配你的主题色 */
   color: white !important;
   border-radius: 8px;
   font-weight: bold;

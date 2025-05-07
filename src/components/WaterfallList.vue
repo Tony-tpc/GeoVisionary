@@ -59,7 +59,7 @@ import { LazyImg, Waterfall } from 'vue-waterfall-plugin-next'
 import 'vue-waterfall-plugin-next/dist/style.css'
 import type { ViewCard } from './waterfall.js'
 import { getList } from './api.js'
-import router from "@/router/index.js";
+import router from "@/router";
 
 const props = defineProps({
   list: {
