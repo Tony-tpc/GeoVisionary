@@ -5,7 +5,7 @@ from import_export import resources
 from import_export.admin import ImportExportModelAdmin
 from .models import FrontendUser, Category, ExamSet, Problem, UserHistory, UserConversation, APIConfig, Video, \
     TextContent, RecommendationContent, RecommendationScore, UserLearningBehavior, UserRating, UserFavorite, \
-    UserConversationHeader
+    UserConversationHeader, Feedback
 
 
 # 用户管理
@@ -725,3 +725,27 @@ class UserLearningBehaviorAdmin(ImportExportModelAdmin):
     resource_class = ProxyResource
 
 admin.site.register(UserLearningBehavior, UserLearningBehaviorAdmin)
+
+class FeedbackAdmin(admin.ModelAdmin):
+    list_display = ['get_user', 'get_content', 'get_submit_time',]
+    list_per_page = 10
+    list_filter = ['submit_time']
+    search_fields = ['user__username']
+    ordering = ['-submit_time']
+
+    def get_user(self, obj: Feedback):
+        return obj.user.username
+    get_user.short_description = '用户名'
+    get_user.admin_order_field = 'user__username'
+
+    def get_content(self, obj: Feedback):
+        return obj.content
+    get_content.short_description = '反馈内容'
+    get_content.admin_order_field = 'content'
+
+    def get_submit_time(self, obj: Feedback):
+        return obj.submit_time
+    get_submit_time.short_description = '提交时间'
+    get_submit_time.admin_order_field = 'submit_time'
+
+admin.site.register(Feedback, FeedbackAdmin)

@@ -188,7 +188,7 @@ REST_FRAMEWORK = {
 
 SIMPLEUI_CONFIG = {
     'system_keep': True,
-    'menu_display': ['学习系统管理', '权限与用户管理','前台访问管理'],
+    'menu_display': ['学习系统管理', '权限与用户管理'],
     'dynamic': True,    # 设置是否开启动态菜单, 默认为False. 如果开启, 则会在每次用户登陆时动态展示菜单内容
     'menus': [{
         'name': '学习系统管理',
@@ -253,6 +253,10 @@ SIMPLEUI_CONFIG = {
             'name': '推荐分数',
             'icon': 'fa fa-line-chart',
             'url': '/admin/users/recommendationscore/',
+        },{
+            'name': '用户反馈',
+            'icon': 'fa-solid fa-pen-to-square',
+            'url': '/admin/users/feedback/',
         }],
     },{
         'name':'权限与用户管理',

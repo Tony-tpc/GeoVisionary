@@ -1,3 +1,5 @@
+from datetime import timedelta, datetime
+
 import jwt
 import requests
 from django.utils.timezone import now
@@ -13,7 +15,7 @@ from GeoVisionary_Backend import settings
 from users.utils.MyJWT import generate_tokens, decode_token
 from django.db.models import Prefetch
 from .models import FrontendUser, Problem, ExamSet, Category, UserHistory, UserLearningBehavior, RecommendationContent, \
-    UserRating, Video, TextContent, RecommendationScore, UserFavorite
+    UserRating, Video, TextContent, RecommendationScore, UserFavorite, Feedback
 from .serializers import FrontendUserSerializer, ProblemSerializer, ExamSetSerializer, UserHistorySerializer, \
     UserLearningBehaviorSerializer, RecommendationContentSerializer, UserRatingSerializer, UserFavoriteSerializer, \
     FeatureVectorSerializer
@@ -551,20 +553,6 @@ def get_recommend_items(request):
 
     return Response({"data":response_list},status=status.HTTP_200_OK)
 
-@api_view(['GET','POST'])
-def test_front_back_connection(request):
-    if request.method == 'POST':
-        data = request.data
-        user_id = data.get("user_id")
-        content_type = data.get("content_type")
-        rating_type = data.get("rating_type")
-        rating = data.get("rating")
-        print(f"你请求了{user_id},{content_type},{rating_type},{rating}的数据！")
-        return Response({'data':{'content_type':content_type,
-                                 "rating_type":rating_type,"rating":rating}},status=status.HTTP_200_OK)
-    else:
-        return Response(status=status.HTTP_202_ACCEPTED)
-
 @api_view(['GET'])
 def send_feature_data(request):
     # 获取构建特征向量的特征值
@@ -697,3 +685,81 @@ def send_feature_data(request):
         return Response(status=response.status_code)
 
     return Response(response_data,status=status.HTTP_200_OK)
+
+@api_view(['POST'])
+def save_feedback(request):
+    data = request.data
+    user = data['user']
+    content = data['content']
+    user_object = FrontendUser.objects.get(user_id=user['user_id'])
+    if not user_object:
+        return Response("用户不存在！",status=status.HTTP_404_NOT_FOUND)
+
+    Feedback.objects.create(
+        user_id=user['user_id'],
+        content=content,
+    )
+
+    return Response("反馈上传成功！",status=status.HTTP_201_CREATED)
+
+@api_view(['POST'])
+def get_learning_behavior(request):
+    user = request.data.get('user')
+    behavior_type = request.data.get('behavior_type')
+    user_object = FrontendUser.objects.get(user_id=user['user_id'])
+    if not user_object:
+        return Response("用户不存在！",status=status.HTTP_404_NOT_FOUND)
+
+    behavior_object = UserLearningBehavior.objects.get(user_id=user['user_id'])
+    if not hasattr(behavior_object, behavior_type):
+        return Response("用户行为不存在！",status=status.HTTP_404_NOT_FOUND)
+
+    behavior_data = getattr(behavior_object, behavior_type)
+    if behavior_type == 'study_frequency_last_7_days':
+        # 获取今天的日期
+        today = datetime.today().date()
+
+        # 生成近7天的日期列表（含今天）
+        last_7_days = [(today - timedelta(days=i)).isoformat() for i in range(7)]
+        last_7_days.reverse()  # 从旧到新排列
+
+        # 过滤出最近7天的数据，并补全缺失日期
+        processed_data = {
+            date_str: behavior_data.get(date_str, 0)
+            for date_str in last_7_days
+        }
+        behavior_data = processed_data
+
+    return Response(behavior_data,status=status.HTTP_200_OK)
+
+@api_view(['POST'])
+def get_favorites(request):
+    data = request.data
+    user = data['user']
+    user_object = FrontendUser.objects.get(user_id=user['user_id'])
+    if not user_object:
+        return Response("用户不存在！",status=status.HTTP_404_NOT_FOUND)
+
+    favorite_objects = UserFavorite.objects.filter(user_id=user['user_id'])
+    if not favorite_objects:
+        return Response("用户没有收藏任何内容！",status=status.HTTP_404_NOT_FOUND)
+
+    favorite_content = []
+    for obj in favorite_objects:
+        favorite_content.append(str(obj.content))
+    print(favorite_content)
+    return Response(favorite_content,status=status.HTTP_200_OK)
+
+@api_view(['GET','POST'])
+def test_front_back_connection(request):
+    if request.method == 'POST':
+        data = request.data
+        user_id = data.get("user_id")
+        content_type = data.get("content_type")
+        rating_type = data.get("rating_type")
+        rating = data.get("rating")
+        print(f"你请求了{user_id},{content_type},{rating_type},{rating}的数据！")
+        return Response({'data':{'content_type':content_type,
+                                 "rating_type":rating_type,"rating":rating}},status=status.HTTP_200_OK)
+    else:
+        return Response(status=status.HTTP_202_ACCEPTED)

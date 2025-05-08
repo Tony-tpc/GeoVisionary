@@ -2,7 +2,7 @@ from django.urls import path
 from .views import (register_user, login_user, refresh_token, auto_login,
                     leaderboard_inquiry, get_exams, update_user, save_user_history, load_user_history,
                     log_user_activity, log_user_rating, get_user_rating, get_recommend_items, send_feature_data,
-                    test_front_back_connection,)
+                    test_front_back_connection, save_feedback, get_learning_behavior, get_favorites, )
 
 app_name = 'users'
 urlpatterns = [
@@ -20,5 +20,8 @@ urlpatterns = [
     path('get-user-rating/', get_user_rating, name="get_user_rating"),
     path('get-recommend-items/', get_recommend_items, name="get_recommend_items"),
     path('send-feature-data/', send_feature_data, name="send_feature_data"),
+    path('save-feedback/', save_feedback, name="save_feedback"),
+    path('get-learning-behavior/', get_learning_behavior, name="get_learning_behavior"),
+    path('get-favorites/', get_favorites, name="get_favorites"),
     path('test/', test_front_back_connection, name="test_front_back_connection"),
 ]

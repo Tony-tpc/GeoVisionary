@@ -429,3 +429,12 @@ class UserLearningBehavior(models.Model):
 
         # 保存更新
         self.save(update_fields=["content_click_count", "content_click_rate"])
+
+# 用户反馈数据
+class Feedback(models.Model):
+    user = models.ForeignKey(FrontendUser, on_delete=models.CASCADE)
+    content = models.TextField()
+    submit_time = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.user.username} 的反馈：{self.content[:30]}"
