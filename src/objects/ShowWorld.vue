@@ -274,6 +274,26 @@ const closeContextMenu = () => {
     overflow-y: scroll;
     overflow-x: hidden;
 }
+.chat-container::-webkit-scrollbar {
+  width: 8px;
+  height: unset;
+}
+.chat-container::-webkit-scrollbar-thumb {
+  background-color: #0d534b;
+  border-radius: 4px;
+  border: 4px solid rgba(0, 0, 0, 0);
+  background-clip: unset;
+  box-shadow: unset;
+  transition: background 0.3s ease;
+}
+.chat-container::-webkit-scrollbar-track {
+  background-color: transparent;
+  border-radius: unset;
+  box-shadow: unset;
+}
+.chat-container::-webkit-scrollbar-thumb:hover {
+  background-color: #022e2b;
+}
 
 /* 菜单项样式 */
 .menu-item {

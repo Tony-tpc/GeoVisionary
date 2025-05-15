@@ -1497,7 +1497,7 @@ watch(() => currentIndex.value, async (val) => {
   white-space: nowrap;
 }
 
-/* 美化滚动条（可选） */
+/* 美化滚动条 */
 .historyDisplay::-webkit-scrollbar {
   width: 8px;
   height: unset;

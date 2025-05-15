@@ -933,7 +933,7 @@ button::before {
 .welcome-card {
   background: rgba(255, 255, 255, 0.98);
   border-radius: 16px;
-  padding: 32px;
+  padding: 15px 32px 0 32px;
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
   border: 1px solid rgba(0, 0, 0, 0.05);
   animation: slideUp 0.6s ease-out;
