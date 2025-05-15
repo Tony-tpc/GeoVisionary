@@ -25,7 +25,7 @@ V3_MODEL = os.environ.get("V3_MODEL")
 DS_KEY = os.environ.get("DS_KEY")
 DS_KEY2 = os.environ.get("DS_KEY2")
 TXDT_Key = os.environ.get("TXDT_Key")
-
+VOICE = os.environ.get("VOICE")
 
 class BaseConsumer(AsyncWebsocketConsumer):
     def __init__(self, *args, **kwargs):
@@ -35,6 +35,12 @@ class BaseConsumer(AsyncWebsocketConsumer):
         self.msg = ""  # 用户输入
         self.full_content = {"content": "", "reasoning": ""}  #  LLM输出
         self.save_task = None  # 保存对话的异步任务
+        self.source = "" # 对话来历
+        self.full_history = [] # 全部历史记录
+        self.latest_time = None # 最新时间戳
+        self.header_id = None # 摘要 id
+        self.origin_message = '' # 修改版用户输入（如果用户选择询问指定坐标的信息）
+        self.TTS = '' # TTS 模型来源
 
     async def connect(self):
         print(datetime.now().isoformat())
@@ -42,19 +48,20 @@ class BaseConsumer(AsyncWebsocketConsumer):
 
     async def disconnect(self, close_code):
         """WebSocket 断开连接时，取消正在运行的任务"""
-        pass
+        return close_code
 
     async def receive(self, text_data):
         """获取user_id 和 messages，判断是否旧对话"""
         data = json.loads(text_data)
         user_id = data.get("user_id")
         task = data.get("task", "response")
+        self.source = data.get("source","")
         if user_id:
             self.user = await sync_to_async(FrontendUser.objects.get)(user_id=user_id)
         match task:
             case "response":
                 model_type = data.get("llm", "ds")
-                print(model_type)
+                self.TTS = data.get("TTS",'')
                 messages = data.get("message", [])
                 self.isOldchat = data.get("isOldchat")
                 # 如果是新的会话，isOldchat收到null
@@ -65,11 +72,16 @@ class BaseConsumer(AsyncWebsocketConsumer):
                 if self.isOldchat:
                     history_messages = await self.get_full_history_back(self.isOldchat)
 
+                self.full_history = history_messages
+                print(self.full_history)
+                self.latest_time = datetime.now()
+                await self.set_newest_timestamp(self.header_id)
                 message = history_messages + [{"role": "user", "content": self.msg}]
                 return await self.get_llm_config(model_type, message)
             case "get_full_history":
                 precursor_id = data.get("precursor_id")
                 history = await self.get_full_history_top(precursor_id)
+                # await self.set_newest_timestamp(precursor_id)  可能会造成不必要的性能影响
                 print("history", history)
                 print(datetime.now().isoformat())
                 await self.send(
@@ -77,11 +89,11 @@ class BaseConsumer(AsyncWebsocketConsumer):
                         {"history": history, "isOldchat": self.isOldchat}
                     )
                 )
-                await self.disconnect(200)
+                return await self.disconnect(200)
             case "get_preview":
                 preview = await self.get_preview_history()
                 await self.send(text_data=json.dumps({"preview": preview}))
-                await self.disconnect(200)
+                return await self.disconnect(200)
 
     async def handle_message(self, messages):
         self.msg = messages[0]["content"]
@@ -104,7 +116,7 @@ class BaseConsumer(AsyncWebsocketConsumer):
                     "top_p": 0.7,
                 },
             }
-        elif model_type == "dslocal":
+        elif model_type == "dsR1":
             return {
                 "url": "https://api.siliconflow.cn/v1/chat/completions",
                 "headers": {
@@ -142,6 +154,7 @@ class BaseConsumer(AsyncWebsocketConsumer):
             precursor_id = self.isOldchat if self.isOldchat else uuid.uuid4().hex
             # 不是如果是Oldchat，新建一个前驱等于后继
             # 如果不是newchat，前驱等于前端传入的结点
+            self.msg = self.msg if not self.origin_message else self.origin_message
             UserConversation.objects.create(
                 frontend_user=self.user,
                 precursor_id=precursor_id,
@@ -155,6 +168,7 @@ class BaseConsumer(AsyncWebsocketConsumer):
                     precursor_id=precursor_id,
                     user_message=self.msg,
                     llm_summary=None,
+                    source=self.source if self.source else "world_map"
                 )
         except IntegrityError as e:
             print("唯一性冲突:", e)
@@ -183,8 +197,19 @@ class BaseConsumer(AsyncWebsocketConsumer):
             )
             precursor_id = str(current.precursor_id) if current.precursor_id else None
             current = session_map.get(precursor_id) if precursor_id else None
+            self.header_id = precursor_id
 
         return history[::-1]  # 按时间正序排列
+
+    @sync_to_async
+    def set_newest_timestamp(self, precursor_id):
+        if not precursor_id:
+            return
+
+        if self.latest_time:
+            header = UserConversationHeader.objects.get(precursor_id=precursor_id)
+            header.timestamp = self.latest_time
+            header.save(update_fields=["timestamp"])
 
     async def send_error(self, message):
         await self.send(text_data=json.dumps({"error": message, "completed": True}))
@@ -209,6 +234,7 @@ class BaseConsumer(AsyncWebsocketConsumer):
                 ]
             )
             session_id = str(current.session_id) if current.session_id else None
+            self.latest_time = current.timestamp
             current = session_map.get(session_id) if session_id else None
             self.isOldchat = session_id
         return history  # 按时间正序排列
@@ -216,8 +242,9 @@ class BaseConsumer(AsyncWebsocketConsumer):
     @sync_to_async
     def get_preview_history(self):
         # try:
+        source = self.source if self.source else "world_map"
         all_sessions = list(
-            UserConversationHeader.objects.filter(frontend_user=self.user).order_by(
+            UserConversationHeader.objects.filter(frontend_user=self.user,source=source).order_by(
                 "timestamp"
             )
         )
@@ -257,6 +284,9 @@ class TTSAudioConsumer(BaseConsumer):
 
     async def receive(self, text_data):
         config = await super().receive(text_data)
+        if type(config) != dict:
+            print(type(config))
+            return
         # 并行启动两个任务
         self.summary_task = asyncio.create_task(
             self.request_summary(self.msg)
@@ -303,8 +333,6 @@ class TTSAudioConsumer(BaseConsumer):
 
     async def stream_llm_response(self, config):
         try:
-            print(config)
-            print(1)
             async with httpx.AsyncClient() as client:  # 使用异步客户端
                 async with client.stream(  # 异步流式请求
                     "POST",
@@ -340,6 +368,7 @@ class TTSAudioConsumer(BaseConsumer):
                                             content_chunk += "<think>"
                                             has_reasoning_started = True
                                         content_chunk += reasoning
+                                        self.full_content["reasoning"] += reasoning
                                     if content:
                                         if (
                                             has_reasoning_started
@@ -348,6 +377,7 @@ class TTSAudioConsumer(BaseConsumer):
                                             content_chunk += "</think>"
                                             has_reasoning_ended = True
                                         content_chunk += content
+                                        self.full_content["content"] += content
                                 else:
                                     content_chunk += content
 
@@ -355,6 +385,19 @@ class TTSAudioConsumer(BaseConsumer):
                                     yield content_chunk
                             except Exception as e:
                                 print("解析出错:", e)
+                # 产生会话 id，并保存
+                if self.user:
+                    session_id = uuid.uuid4().hex
+                self.save_task = asyncio.create_task(
+                    self.save_conversation(session_id)
+                )
+                await asyncio.gather(self.save_task)
+                await self.send(
+                    text_data=json.dumps(
+                        {"type": "completed", "session_id": session_id}
+                    )
+                )
+
         except httpx.TimeoutException:
             self.error = "Request Timeout"
         except httpx.HTTPError as e:
@@ -364,14 +407,25 @@ class TTSAudioConsumer(BaseConsumer):
 
     async def request_summary(self, chat_history):
         # 在最后一条用户输入中加入总结提示词
-        summary_prompt = [{
-            "role": "system",
-            "content": "你是一位经验丰富的高中地理老师，你的学生目前遇到了一些地理问题，你需要耐心地帮助他解决问题，并通俗易懂地讲解。记住，你只能用中文思考和回答。如果他输入的是其他方面的问题，也请像个老师一样耐心教导他。"
-        },{
-            "role": "user",
-            "content": chat_history
-            + " 请用不超过100字精简地回答这段内容，并且不要用 markdown 格式。",
-        }]
+        if len(self.full_history) == 0:
+            summary_prompt = [{
+                "role": "system",
+                "content": "你是一位经验丰富的高中地理老师，你的学生目前遇到了一些地理问题，你需要耐心地帮助他解决问题，并通俗易懂地讲解。记住，你只能用中文思考和回答。如果他输入的是其他方面的问题，也请像个老师一样耐心教导他。"
+            },{
+                "role": "user",
+                "content": chat_history
+                + " 请用不超过100字精简地回答这段内容，并且不要用 markdown 格式。",
+            }]
+        else:
+            summary_prompt = [{
+                "role": "system",
+                "content": "你是一位经验丰富的高中地理老师，你的学生目前遇到了一些地理问题，你需要耐心地帮助他解决问题，并通俗易懂地讲解。记住，你只能用中文思考和回答。如果他输入的是其他方面的问题，也请像个老师一样耐心教导他。"
+            },*self.full_history,{
+                "role": "user",
+                "content": chat_history
+                           + " 请用不超过100字精简地回答这段内容，并且不要用 markdown 格式。",
+            }]
+            print(f"摘要提示词：{summary_prompt}")
 
         url_ds = "https://api.siliconflow.cn/v1/chat/completions"
         headers_ds = {
@@ -423,32 +477,59 @@ class TTSAudioConsumer(BaseConsumer):
                 self.error = str(e)
 
     async def request_tts(self, text):
-        TTS_SERVER_URI = "ws://127.0.0.1:8080"
-        try:
-            async with websockets.connect(
-                TTS_SERVER_URI, max_size=2**26, ping_interval=30, ping_timeout=120
-            ) as websocket:
-                await websocket.send(text)
-                audio_data = await websocket.recv()
+        if self.TTS != 'Silicon':
+            TTS_SERVER_URI = "ws://127.0.0.1:8080"
+            try:
+                async with websockets.connect(
+                    TTS_SERVER_URI, max_size=2**26, ping_interval=30, ping_timeout=120
+                ) as websocket:
+                    await websocket.send(text)
+                    audio_data = await websocket.recv()
 
-                if audio_data:
-                    # 将 bytes 音频数据转换成 Base64 字符串
-                    audio_b64 = base64.b64encode(audio_data).decode("utf-8")
-                    return audio_b64
-                else:
-                    print("❌ 收到空音频数据")
-                    self.error = "收到空音频数据"
-                    return ""
+                    if audio_data:
+                        # 将 bytes 音频数据转换成 Base64 字符串
+                        audio_b64 = base64.b64encode(audio_data).decode("utf-8")
+                        return audio_b64
+                    else:
+                        print("❌ 收到空音频数据")
+                        self.error = "收到空音频数据"
+                        return ""
 
-        except asyncio.TimeoutError:
-            print("TTS 请求超时（超过 120 秒未响应）")
-            self.error = "TTS 请求超时"
-            return ""
+            except asyncio.TimeoutError:
+                print("TTS 请求超时（超过 120 秒未响应）")
+                self.error = "TTS 请求超时"
+                return ""
 
-        except Exception as e:
-            print(f"TTS请求失败: {e}")
-            self.error = str(e)
-            return ""
+            except Exception as e:
+                print(f"TTS请求失败: {e}")
+                self.error = str(e)
+                return ""
+        else:
+            url = "https://api.siliconflow.cn/v1/audio/speech"
+            print(f"测试转语音内容：{text}")
+
+            payload = {
+                "model": "FunAudioLLM/CosyVoice2-0.5B",
+                "input": text,
+                "voice": VOICE,
+                "response_format": "mp3",
+                "sample_rate": 32000,
+                "stream": False,
+                "speed": 1,
+                "gain": 0
+            }
+            headers = {
+                "Authorization": f"Bearer {DS_KEY}",
+                "Content-Type": "application/json"
+            }
+
+            response = requests.request("POST", url, json=payload, headers=headers)
+            if response.status_code == 200:
+                audio_b64 = base64.b64encode(response.content).decode("utf-8")
+                return audio_b64
+            else:
+                print('硅基流动 TTS 请求失败')
+                return ''
 
     async def process_and_send(self, content):
         # 处理 markdown 格式
@@ -516,7 +597,8 @@ class ChatConsumer(BaseConsumer):
         if self.save_task and not self.save_task.done():
             self.save_task.cancel()
         try:
-            await asyncio.gather(self.save_task, return_exceptions=True)
+            if self.save_task:
+                await asyncio.gather(self.save_task, return_exceptions=True)
         except asyncio.CancelledError:
             print("任务被主动取消")
 
@@ -567,10 +649,14 @@ class ChatConsumer(BaseConsumer):
                     self.msg = f"""{self.prompt}
                 现在，请告诉我{region}位置的地理信息和人文特点：
                 纬度 {messages['lat']}，经度 {messages['lng']}"""
+                    self.origin_message = f"""请告诉我{region}的地理信息和人文特点：
+                纬度 {messages['lat']}，经度 {messages['lng']}"""
                 else:
                     self.msg = f"""{self.prompt}
-                现在，请告诉我位置的地理信息和人文特点：
+                现在，请告诉我该位置的地理信息和人文特点：
                 纬度 {messages['lat']}，经度 {messages['lng']}"""
+                    self.origin_message = f"""请告诉我该位置的地理信息和人文特点：
+                    纬度 {messages['lat']}，经度 {messages['lng']}"""
             elif msg_type == "text":
                 self.msg = messages.get("text")
         else:

@@ -1,8 +1,12 @@
+import base64
+import json
+import os
 from datetime import timedelta, datetime
 
 import jwt
 import requests
 from django.utils.timezone import now
+from dotenv import load_dotenv
 
 from rest_framework import status
 from rest_framework.permissions import AllowAny
@@ -20,6 +24,8 @@ from .serializers import FrontendUserSerializer, ProblemSerializer, ExamSetSeria
     UserLearningBehaviorSerializer, RecommendationContentSerializer, UserRatingSerializer, UserFavoriteSerializer, \
     FeatureVectorSerializer
 
+load_dotenv()
+SILICON_KEY = os.environ.get("DS_KEY")
 
 @api_view(['POST'])
 @parser_classes([MultiPartParser, FormParser])  # 解析文件上传
@@ -750,6 +756,80 @@ def get_favorites(request):
     print(favorite_content)
     return Response(favorite_content,status=status.HTTP_200_OK)
 
+@api_view(['GET'])
+def send_graph(request):
+    # 节点信息，样式诸如   { "id": 0, 其他字段: 值 }
+    user_list = []
+    user_id = 0
+    problem_list = []
+    message_list = []
+    message_id = 0
+    topic_list = []
+    # 边信息，样式诸如 { "source": 0, "target": 1 }
+    user_solve_pro = []
+    pro_relate_topic = []
+    mess_mention_topic = []
+    user_asks_mess = []
+
+    topic_objects = Category.objects.filter(category_type='topic')
+    for topic in topic_objects:
+        topic_list.append({
+            "id": topic.id,
+            "name": topic.name
+        })
+
+    problem_objects = Problem.objects.all()
+    for problem in problem_objects:
+        problem_list.append({
+            "id": problem.id,
+            "name": problem.question
+        })
+
+    user_objects = FrontendUser.objects.all()
+    for user in user_objects:
+        print(user.username)
+        user_behavior = UserLearningBehavior.objects.filter(user_id=user.user_id).first()
+        if not user_behavior:
+            continue
+
+        user_list.append({
+            "id": user_id,
+            "content_click_rate": user_behavior.content_click_rate,
+            "study_frequency_last_7_days": user_behavior.study_frequency_last_7_days,
+            "active_time_distribution": user_behavior.active_time_distribution,
+            "last_learning_time_interval": user_behavior.last_learning_time_interval,
+        })
+        history_objects = UserHistory.objects.filter(frontend_user=user)
+        for history in history_objects:
+            print(history.problem.id)
+
+        user_id += 1
+
+
+    nodes_dict = {
+        "user": user_list,
+        "problem": problem_list,
+        "message": message_list,
+        "topic": topic_list
+    }
+    edges_dict = {
+        "problem__solved_by__user": user_solve_pro,
+        "problem__related_to__topic": pro_relate_topic,
+        "message__mentions__topic": mess_mention_topic,
+        "user__asks_about__message": user_asks_mess
+    }
+    data = {
+        "nodes": nodes_dict,
+        "edges": edges_dict
+    }
+
+    model_url = "http://127.0.0.1:5000/graph"
+    response = requests.post(url=model_url, json=data, headers={'Content-Type': 'application/json'})
+    if response.status_code != status.HTTP_200_OK:
+        return Response(status=response.status_code)
+    print(response)
+    return Response(data,status=status.HTTP_200_OK)
+
 @api_view(['GET','POST'])
 def test_front_back_connection(request):
     if request.method == 'POST':
@@ -763,3 +843,41 @@ def test_front_back_connection(request):
                                  "rating_type":rating_type,"rating":rating}},status=status.HTTP_200_OK)
     else:
         return Response(status=status.HTTP_202_ACCEPTED)
+
+@api_view(['GET'])
+def send_prompt_audio(request):
+    #     "uri": "speech:EncouragingWordsFromMentor:cr8v6qjd9p:zmaytinldczvgrkjvhlv"
+    file_path = os.path.join('media', 'audio', 'zero_shot_prompt.wav')
+
+    # 读取音频并转为 base64 字符串
+    with open(file_path, 'rb') as audio_file:
+        audio_base64 = base64.b64encode(audio_file.read()).decode('utf-8')
+
+    url = "https://api.siliconflow.cn/v1/uploads/audio/voice"
+
+    # 构造请求体
+    custom_name = "EncouragingWordsFromMentor"
+    text = "希望你以后能够做得比我还好呦。"
+    model = "FunAudioLLM/CosyVoice2-0.5B"
+    audio_data_uri = f"data:audio/mpeg;base64,{audio_base64}"
+
+    data = {
+        "model": model,  # 模型名称
+        "customName": custom_name,  # 自定义的音频名称
+        "audio": audio_data_uri,
+        "text": text
+    }
+
+    # 构造请求头
+    headers = {
+        "Authorization": f"Bearer {SILICON_KEY}",
+        "Content-Type": "application/json"
+    }
+
+    # 向模型服务发送 POST 请求
+    response = requests.post(url, headers=headers, data=json.dumps(data))
+    print("Status Code:", response.status_code)
+    print("Response Body:", response.text)
+
+    # 返回响应内容
+    return Response(response.json(),status=status.HTTP_200_OK)

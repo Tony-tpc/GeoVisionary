@@ -164,6 +164,7 @@ class UserConversationHeader(models.Model):
     timestamp = models.DateTimeField(auto_now_add=True)  # 记录时间
     user_message = models.TextField()  # 用户输入
     llm_summary = models.TextField(null=True,blank=True)  # LLM 概要
+    source = models.CharField(max_length=100, default="world_map")
     model_config = models.ForeignKey(
         APIConfig,
         on_delete=models.CASCADE,

@@ -13,15 +13,26 @@ DS_MODEL = os.environ.get("DS_MODEL")
 DS_KEY = os.environ.get("DS_KEY")
 BAIDU_Key = os.environ.get("BAIDU_KEY")
 Trefle_Key = os.environ.get("TREFLE_KEY")
+Domain = 'http://localhost:8040'
 
 # 代理图片请求
 @api_view(["GET"])
 def proxy_image(request):
+    proxy_type = request.GET.get("type", 'bilibili')
     image_url = request.GET.get('url')
     if not image_url:
         return HttpResponse("缺少图片 URL 参数", status=400)
 
     try:
+        # 默认图片代理
+        if image_url == 'undefined':
+            if proxy_type == 'bilibili':
+                image_url = Domain + '/media/backup/bilibili.jpg'
+            elif proxy_type == 'baidu':
+                image_url = Domain + '/media/backup/baidu.jpg'
+            elif proxy_type == 'biliAuthor':
+                image_url = Domain + '/media/backup/biliAuthor.jpg'
+
         response = requests.get(image_url)
         response.raise_for_status()  # 如果请求失败，抛出异常
 
@@ -198,7 +209,7 @@ def auto_add_baike(request):
     ]
 
     for keyword in keywords:
-        response = requests.get('http://localhost:8040/proxy/baidu-baike/?keyword=' + keyword)
+        response = requests.get(Domain + '/proxy/baidu-baike/?keyword=' + keyword)
         response.raise_for_status()
         response_data = response.json()
         keyword_abstract = response_data.get('abstract','')

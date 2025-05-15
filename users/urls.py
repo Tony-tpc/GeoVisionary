@@ -2,7 +2,8 @@ from django.urls import path
 from .views import (register_user, login_user, refresh_token, auto_login,
                     leaderboard_inquiry, get_exams, update_user, save_user_history, load_user_history,
                     log_user_activity, log_user_rating, get_user_rating, get_recommend_items, send_feature_data,
-                    test_front_back_connection, save_feedback, get_learning_behavior, get_favorites, )
+                    test_front_back_connection, save_feedback, get_learning_behavior, get_favorites, send_graph,
+                    send_prompt_audio, )
 
 app_name = 'users'
 urlpatterns = [
@@ -23,5 +24,7 @@ urlpatterns = [
     path('save-feedback/', save_feedback, name="save_feedback"),
     path('get-learning-behavior/', get_learning_behavior, name="get_learning_behavior"),
     path('get-favorites/', get_favorites, name="get_favorites"),
+    path('send-graph/', send_graph, name="send_graph"),
+    # path('send-prompt-audio/', send_prompt_audio, name="send_prompt_audio"),
     path('test/', test_front_back_connection, name="test_front_back_connection"),
 ]

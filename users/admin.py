@@ -284,14 +284,15 @@ class UserConversationAdmin(admin.ModelAdmin):
     get_user_message.short_description = '用户输入'
 
     def get_llm_response(self, obj: UserConversation):
-        return obj.llm_response
+        return obj.llm_response[:100]
     get_llm_response.short_description = 'llm输出'
 
 admin.site.register(UserConversation,UserConversationAdmin)
 
 class UserConversationHeaderAdmin(admin.ModelAdmin):
-    list_display = ['get_frontend_user','get_precursor_id','get_timestamp','get_user_message','get_llm_summary']
+    list_display = ['get_frontend_user','get_precursor_id','get_timestamp','get_user_message','get_llm_summary','get_source']
     list_per_page = 10
+    list_filter = ['source']
     search_fields = ['frontend_user__username','precursor_id','timestamp']
 
     def get_frontend_user(self, obj: UserConversationHeader):
@@ -318,6 +319,11 @@ class UserConversationHeaderAdmin(admin.ModelAdmin):
         return obj.llm_summary
     get_llm_summary.short_description = 'llm输出'
     get_llm_summary.admin_order_field = 'llm_summary'
+
+    def get_source(self, obj: UserConversationHeader):
+        return obj.source
+    get_source.short_description = '对话来源'
+    get_source.admin_order_field = 'source'
 
 admin.site.register(UserConversationHeader,UserConversationHeaderAdmin)
 
