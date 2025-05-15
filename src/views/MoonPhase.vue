@@ -2,7 +2,7 @@
   <!--  首页 -->
   <section>
     <div class="container section1">
-      <img src="../assets/home-images/月相.jpeg" loading="lazy" class="video1" alt=""/>
+      <img src="@/assets/home-images/月相（横）.jpg" alt="月相" class="image">
     </div>
     <div class="section1-title">
       月相
@@ -10,45 +10,19 @@
     <div class="section1-subtitle">
       星空下的月亮舞蹈，随着时间不断变化的面貌，展现无限魅力。
     </div>
+    <ScrollButton sectionName="#section2" effect="light"></ScrollButton>
   </section>
   <!--  展示页 -->
   <section>
-    <div class="container section2">
+    <div class="container section2" id="section2">
       <ShowMoon />
     </div>
   </section>
 </template>
 
 <script setup>
-import { gsap } from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { onMounted } from "vue";
 import ShowMoon from "@/objects/ShowMoon.vue";
-gsap.registerPlugin(ScrollTrigger)
-
-
-onMounted(() => {
-  // 展示模型动画
-  ScrollTrigger.create({
-    trigger:'.section2',
-    start:'top-=200 top',
-    end:'+=200',
-    scrub:true,
-    animation:
-        gsap.timeline()
-            .to('.section1',{opacity:0})
-  });
-  ScrollTrigger.create({
-    trigger:'.section1',
-    start:'top top',
-    end:'+=300',
-    scrub:true,
-    animation:
-        gsap.timeline()
-            .from('.section2',{opacity:0})
-  });
-});
-
+import ScrollButton from "@/components/ScrollButton.vue";
 </script>
 
 <style scoped>
@@ -60,20 +34,25 @@ onMounted(() => {
   overflow: hidden;
 }
 
-/* 视频背景 */
+/* 首页容器 */
 .section1 {
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100vh;
+  background: rgba(0, 0, 0, 1);
 }
 
-/* 首页视频 */
-.video1 {
+/* 首页图片 */
+.image {
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
   height: 100%;
-  object-fit: fill;
+  object-fit: cover;
+  z-index: 2;
 }
 
 /* 首页大标题 */
@@ -93,7 +72,8 @@ onMounted(() => {
   top: 30%;
   left: 15%;
   font-size: 32px;
-  color: #fff;
+  color: rgba(255, 255, 255, 1);
+  mix-blend-mode: difference;
   z-index: 2;
 }
 
@@ -103,5 +83,6 @@ onMounted(() => {
   top: 100vh;
   left: 0;
   height: 100vh;
+  z-index: -1;
 }
 </style>

@@ -7,33 +7,48 @@
     <!--  固定对话内容  -->
     <div>
       <!--  Live2D -->
-      <canvas ref="canvas" class="live2Dmodel" @click="changeDisplay"></canvas>
-      <!--  便捷标签 -->
-      <div class="convenient-tags-container">
-        <el-button class="zoom-outputArea-btn"
-                   @click="changeOutputArea"
-                   @mouseenter="() => showTooltip('zoom')"
-                   @mouseleave="() => hideTooltip('zoom')"
-                   type="primary">
-          <el-icon v-if="!data.changeArea"><ZoomIn /></el-icon>
-          <el-icon v-else><ZoomOut /></el-icon>
-        </el-button>
-        <el-button class="refresh-outputArea-btn"
-                   @click="refreshPosition"
-                   @mouseenter="() => showTooltip('refresh')"
-                   @mouseleave="() => hideTooltip('refresh')"
-                   type="primary">
-          <el-icon><Refresh /></el-icon>
-        </el-button>
-      </div>
-      <div class="tooltips">
-        <div class="zoom-tooltip" :ref="(el) => tooltips.zoom = el">{{ data.changeArea ? '缩小输出框' : '放大输出框' }}</div>
-        <div class="refresh-tooltip" :ref="(el) => tooltips.refresh = el">重置输出框</div>
-        <div class="convenient-tooltip" :ref="(el) => tooltips.convenient = el">{{ isActive ? "禁用标签自动选择" : "启用标签自动选择" }}</div>
-      </div>
+      <canvas ref="canvas" class="live2Dmodel"></canvas>
       <!--   输入和输出   -->
       <div class="LLM-input-output">
+        <!-- 菜单 icon -->
+        <el-tooltip
+            popper-class="tooltips"
+            effect="dark"
+            :content="data.displayEverything ? '收起对话框':'展开对话框'"
+            placement="right"
+        >
+          <div class="bookmark" @click="changeDisplay">
+            <el-icon v-if="data.displayEverything"><Fold /></el-icon>
+            <el-icon v-else><Expand /></el-icon>
+          </div>
+        </el-tooltip>
+        <!-- 历史记录 icon -->
+        <el-tooltip
+            popper-class="tooltips"
+            effect="dark"
+            :content="data.displayHistory ? '关闭历史记录':'打开历史记录'"
+            placement="right"
+        >
+          <div class="bookmark bookmark2" @click="getHistoryPreview">
+            <el-icon><ChatLineSquare /></el-icon>
+          </div>
+        </el-tooltip>
+        <el-tooltip
+            popper-class="tooltips"
+            effect="dark"
+            :content="'新聊天'"
+            placement="right"
+        >
+          <div class="bookmark bookmark3" @click="newConversation">
+            <el-icon><Edit /></el-icon>
+          </div>
+        </el-tooltip>
         <el-alert title="请注意，输入不能为空" type="error" center show-icon class="warning-alert" :closable="false"/>
+        <!--  背景  -->
+        <div class="LLM-background"></div>
+        <!--  蒙层  -->
+        <div class="LLM-wrapper" @click="getHistoryPreview"></div>
+        <!--  输入区域  -->
         <div style="position: relative;display: flex">
           <!-- 标签 -->
           <div class="tag-container" id="tag-container">
@@ -53,7 +68,7 @@
                 type="textarea"
                 resize="none"
                 :autosize="{minRows: 1, maxRows: 4}"
-                placeholder="您可以在这里输入您想和小助教对话的内容！"
+                placeholder="在这里输入您想和小助教对话的内容！"
                 class="inputArea"
                 @keydown="handleKeydown"
                 id="textInputArea"
@@ -66,6 +81,57 @@
             </el-button>
           </div>
         </div>
+        <!--  历史记录  -->
+        <div class="historyDisplay">
+          <h3>历史记录</h3>
+
+          <template v-if="HistoryPreview.today?.length">
+            <h4>今天</h4>
+            <div v-for="item in HistoryPreview.today" :key="item.precursor_id" class="history-item"
+                 @click="loadHistoryById(item.precursor_id)" :class="{ active: activeHistoryId === item.precursor_id }">
+              {{ formatPreview(item.user_msg) }}
+              <span class="timestamp">{{ formatTime(item.timestamp) }}</span>
+            </div>
+          </template>
+
+          <template v-if="HistoryPreview.last7days?.length">
+            <h4>近7天</h4>
+            <div v-for="item in HistoryPreview.last7days" :key="item.precursor_id" class="history-item"
+                 @click="loadHistoryById(item.precursor_id)" :class="{ active: activeHistoryId === item.precursor_id }">
+              {{ formatPreview(item.user_msg) }}
+              <span class="timestamp">{{ formatTime(item.timestamp) }}</span>
+            </div>
+          </template>
+
+          <template v-if="HistoryPreview.last30days?.length">
+            <h4>近30天</h4>
+            <div v-for="item in HistoryPreview.last30days" :key="item.precursor_id" class="history-item"
+                 @click="loadHistoryById(item.precursor_id)" :class="{ active: activeHistoryId === item.precursor_id }">
+              {{ formatPreview(item.user_msg) }}
+              <span class="timestamp">{{ formatTime(item.timestamp) }}</span>
+            </div>
+          </template>
+
+          <template v-if="HistoryPreview.earlier?.length">
+            <h4>更早</h4>
+            <div v-for="item in HistoryPreview.earlier" :key="item.precursor_id" class="history-item"
+                 @click="loadHistoryById(item.precursor_id)" :class="{ active: activeHistoryId === item.precursor_id }">
+              {{ formatPreview(item.user_msg) }}
+              <span class="timestamp">{{ formatTime(item.timestamp) }}</span>
+            </div>
+          </template>
+
+          <!--  无历史记录提醒  -->
+          <template v-if="!HistoryPreview.today?.length
+             && !HistoryPreview.last7days?.length
+             && !HistoryPreview.last30days?.length
+             && !HistoryPreview.earlier?.length">
+            <div class="no-history">
+              <i class="no-history-icon">📭</i>
+              <p class="no-history-text">暂无历史记录</p>
+            </div>
+          </template>
+        </div>
         <!--  输出区域  -->
         <div class="outputArea" ref="outputAreaRef">
           <ChatMessages
@@ -73,19 +139,19 @@
               :user-config="{
                 name: `${userState.user? userState.user.username : '用户'}`,
                 bgColor: '#d3e0d1',
-                textColor: '#fffdf3'
+                textColor: '#0d0f1a'
               }"
               :llm-config="{
                 name: 'AI助教',
                 bgColor: '#f7f2eb',
-                textColor: '#fffdf3',
+                textColor: '#0d0f1a',
                 errorColor: '#ff4444'
               }"
               :show-llm-cursor="isGenerating"
           />
         </div>
       </div>
-      <div class="summary-output" ref="summaryRef">你好呀，我是小春。<br>单击我即可与我对话哟！<br>（再次单击即可隐藏内容）</div>
+      <div class="summary-output" ref="summaryRef">你好呀，我是小春。<br>单击左侧标签（或图谱节点）<br>即可与我对话哟！</div>
     </div>
   </section>
   <!--  首页背景图及标题 -->
@@ -108,14 +174,23 @@
     <div class="container section2" id="section2">
       <div class="switch-words">便捷模式</div>
       <div class="switch-mode-container wrapper">
-        <SunMoon v-model="isActive"
-                 @click="isActive = !isActive"
-                 @mouseenter="() => showTooltip('convenient')"
-                 @mouseleave="() => hideTooltip('convenient')"
-                 ball="gradient"
-                 halo="linear"
-                 finish="delay"
-        />
+        <el-tooltip
+            popper-class="tooltips"
+            effect="dark"
+            :content="isActive ? '禁用标签自动选择' : '启用标签自动选择'"
+            placement="top"
+        >
+          <SunMoon v-model="isActive"
+                   @click="isActive = !isActive"
+                   ball="gradient"
+                   halo="linear"
+                   finish="delay"
+          />
+        </el-tooltip>
+      </div>
+      <div class="graph-changer">
+        <GraphHeader   v-model="currentIndex"
+                       :neo4jQuery="neo4jQuery"/>
       </div>
       <div id="graph-container" class="graph-container"></div>
     </div>
@@ -132,12 +207,13 @@ import { Draggable } from "gsap/Draggable";
 import neo4j from 'neo4j-driver';
 import { Network } from 'vis-network';
 import {userState} from "@/store/userStore.js";
-import {Close, Refresh, Top, ZoomIn, ZoomOut} from "@element-plus/icons-vue";
+import {ChatLineSquare, Close, Edit, Expand, Fold, Top} from "@element-plus/icons-vue";
 import InputBox from "@/components/InputBox.vue";
 import ChatMessages from "@/components/ChatMessages.vue";
 import ScrollButton from "@/components/ScrollButton.vue";
 import SunMoon from "@/components/SunMoon.vue";
 import Loading from "@/components/Loading.vue"
+import GraphHeader from "@/components/GraphHeader.vue";
 gsap.registerPlugin(ScrollTrigger,Draggable);
 
 window.PIXI = PIXI;
@@ -148,18 +224,15 @@ const data = reactive({
   displayEverything:false, // 显示/隐藏输入/输出
   isDisabled:false, // 启用/禁用提交按钮，防止连续触发
   nodeInfo:[], // neo4j 节点
+  displayHistory : false, // 显示/隐藏历史记录
 })
 
-// 用 reactive 存多个 tooltip ref
-const tooltips = reactive({
-});
-
-// live2D
+// Live2D 模型
 const canvas = ref(null); // live2D 载体
 const app = ref(null); // live2D 应用
 const model = ref(null); // live2D 模型
 
-// LLM对话
+// LLM 对话
 const showCursor = ref(false); // 控制光标
 const isGenerating = ref(false); // 控制加载状态
 const conversation = ref([  { sender: 'llm', content: '您好呀，我是您的专属AI助教，请问有什么可以帮到您？' },]); // 对话记录
@@ -168,8 +241,9 @@ let controller = new AbortController();  // 用于控制请求
 let reader = null;  // 读取流
 const autoScroll = ref(true); // 输出自动滚动到底部
 const outputAreaRef = ref(null); // 拖动/复原输出框
-const isOldchat = ref(0);
-const isApiAvailable = ref(localStorage.getItem('isApiavailable'));
+const isOldchat = ref(0); // 是否原有对话
+const isApiAvailable = ref(localStorage.getItem('isApiavailable')); // 是否允许对话
+const isFirstTime = ref(false);
 
 // 便捷按钮
 const inputBoxes = ref([]); // 标签盒
@@ -181,6 +255,68 @@ const summaryRef = ref(null); // 概要DOM
 const thinkingContent = ref(''); // 思考内容
 let isThinkingActive = false; // 标志变量，防止思考动画重复执行
 let audioContext; // 音频上下文
+let originUpdate; // 原本 live2D 更新函数
+const modelConfig = {
+  llm: "dsR1",
+  TTS: "Silicon",
+} // 模型配置
+
+const WS_URL = 'ws://localhost:8040/ws/chat/'; // 后端 WebSocket 地址
+const HistoryPreview = ref([]); // 历史记录列表
+const inAnimation = ref(false); // 是否正在播放动画（如果是，禁止用户再次点击）
+const activeHistoryId = ref(''); // 当前选中历史记录 ID
+const neo4jQuery = {
+  earthAndMap: `MATCH (root:\`专题\` {名称:"地球和地图"})
+                MATCH path=(root)-[*0..]->(node)
+                RETURN path`,
+  earthInSpace: `MATCH (root:\`专题\` {名称:"宇宙中的地球"})
+                 MATCH path=(root)-[*0..]->(node)
+                 RETURN path`,
+  energyExchange: `MATCH (root:\`专题\` {名称:"自然环境中的物质运动和能量交换"})
+                   MATCH path=(root)-[*0..]->(node)
+                   RETURN path`,
+  sameAndDiff: `MATCH (root:\`专题\` {名称:"自然环境的整体性和差异性"})
+                MATCH path=(root)-[*0..]->(node)
+                RETURN path`,
+  environmentImpact: `MATCH (root:\`专题\` {名称:"自然环境对人类活动的影响"})
+                      MATCH path=(root)-[*0..]->(node)
+                      RETURN path`,
+  populationAndCity: `MATCH (root:\`专题\` {名称:"人口与城市"})
+                      MATCH path=(root)-[*0..]->(node)
+                      RETURN path`,
+  productionAndLink: `MATCH (root:\`专题\` {名称:"生产活动与地域联系"})
+                      MATCH path=(root)-[*0..]->(node)
+                      RETURN path`,
+  harmony: `MATCH (root:\`专题\` {名称:"人类与地理环境的协调发展"})
+           MATCH path=(root)-[*0..]->(node)
+           RETURN path`,
+  regionAndActivity: `MATCH (root:\`专题\` {名称:"区域地理环境与人类活动"})
+                      MATCH path=(root)-[*0..]->(node)
+                      RETURN path`,
+  sustainable: `MATCH (root:\`专题\` {名称:"区域可持续发展"})
+                MATCH path=(root)-[*0..]->(node)
+                RETURN path`,
+  geoTech: `MATCH (root:\`专题\` {名称:"地理信息技术的应用"})
+           MATCH path=(root)-[*0..]->(node)
+           RETURN path`,
+  worldGeo: `MATCH (root:\`专题\` {名称:"世界地理"})
+            MATCH path=(root)-[*0..]->(node)
+            RETURN path`,
+  chinaGeo: `MATCH (root:\`专题\` {名称:"中国地理"})
+            MATCH path=(root)-[*0..]->(node)
+            RETURN path`,
+  tourism: `MATCH (root:\`专题\` {名称:"旅游地理"})
+           MATCH path=(root)-[*0..]->(node)
+           RETURN path`,
+  disaster: `MATCH (root:\`专题\` {名称:"自然灾害与防治"})
+            MATCH path=(root)-[*0..]->(node)
+            RETURN path`,
+  environmentProtect: `MATCH (root:\`专题\` {名称:"环境保护"})
+                       MATCH path=(root)-[*0..]->(node)
+                       RETURN path`,
+} // 图谱请求配置
+const currentIndex = ref(0); // 当前图谱下标
+const nonsenseType = ['一','二','三','四','五','六','one','two','three','four'] // 无意义的边类型
 
 // Live2D 加载逻辑
 const loadLive2D = async () => {
@@ -221,6 +357,7 @@ const loadLive2D = async () => {
     model.value.scale.set(0.2);
     model.value.x = -80;
 
+    originUpdate = model.value.internalModel.motionManager.update;
     console.log("Live2D 模型加载成功");
   } catch (error) {
     console.error("加载失败", error);
@@ -269,11 +406,14 @@ const speaking = (audio) => {
 
     if (model?.value) {
       model.value.internalModel.motionManager.expressionManager = null;
+      model.value.internalModel.motionManager.update = () => {}; // 强行打开嘴型
       model.value.internalModel.coreModel.setParameterValueById('ParamMouthOpenY', mouthOpen); // 设置口型参数
     }
 
     if (!audio.paused && !audio.ended) {
       requestAnimationFrame(updateMouth);
+    } else {
+      model.value.internalModel.motionManager.update = originUpdate;
     }
   };
 
@@ -410,9 +550,11 @@ const chatWithLLM = () => {
       isThinkingActive = true;  // 允许动画运行
       ws.send(JSON.stringify({
         isOldchat: isOldchat.value,
-        message: chatHistory.value,
-        llm: "dslocal",
+        message: [userMessage],
+        llm: modelConfig.llm,
         user_id: userState.user.user_id,
+        source: "geo_graph",
+        TTS: modelConfig.TTS
       }));
     };
 
@@ -426,8 +568,6 @@ const chatWithLLM = () => {
             console.log("流式结束");
             doneReceived = true;
             streamingMessageRef.value.isStreaming = false;
-            checkAndCloseWebSocket(); // 检查是否可以关闭 WebSocket
-            return;
           }
           if (!doneReceived) {
             streamingMessageRef.value.content += chunk.content;
@@ -457,6 +597,11 @@ const chatWithLLM = () => {
 
         if (chunk.type === 'audio') {
           console.log("主音频已忽略（仅概括生成音频）");
+        }
+
+        if (chunk.type === 'completed') {
+          isOldchat.value = chunk.session_id;
+          checkAndCloseWebSocket(); // 检查是否可以关闭 WebSocket
         }
       } catch (error) {
         console.error("WebSocket 消息处理错误:", error);
@@ -579,40 +724,55 @@ const handleKeydown = (e) => {
   }
 }
 
-// 放大输出结果
-const changeOutputArea = () => {
-  if (!data.changeArea) {
-    gsap.timeline()
-        .to('.outputArea',{top:'10%',height:'55%'})
-    data.changeArea = true;
-  } else {
-    gsap.timeline()
-        .to('.outputArea',{top:'20%',height:'30%'})
-    data.changeArea = false;
-  }
-}
-
 // 显示/隐藏输入/输出/提交按钮
 const changeDisplay = () => {
+  if (inAnimation.value) return;
+
   if (data.displayEverything) {
-    gsap.timeline()
-        .to(['.outputArea','.inputArea','.submit-btn','.tag-container','.stop-btn'],{opacity:0,ease:'power2.out'})
-        .set(['.outputArea','.inputArea','.submit-btn','.tag-container','.stop-btn'],{display:'none'})
+    // 收回对话框
+    if (data.displayHistory) {
+      // 如果有历史记录，还要将历史记录收回
+      gsap.timeline()
+          .set(['.submit-btn','.stop-btn'],{display:'none'})
+          .to(['.outputArea','.inputArea','.tag-container','.bookmark',
+            '.historyDisplay','.LLM-background'],{left: "-=28%"})
+          .to('.LLM-wrapper',{left:"-28%", opacity: 0},"<")
+          // .to('.graph-container',{left:"0",width:"90%"},"<")
+          .set(['.historyDisplay','.outputArea','.LLM-wrapper','.LLM-background'],{display:'none'})
+    } else {
+      // 否则收回输入输出以及标签即可
+      gsap.timeline()
+          .set(['.submit-btn','.stop-btn'],{display:'none'})
+          .to(['.outputArea','.inputArea','.tag-container','.bookmark','.LLM-background'],{left: "-=28%"})
+          // .to('.graph-container',{left:"0",width:"90%"},"<")
+          .set(['.historyDisplay','.outputArea','.LLM-background'],{display:'none'})
+    }
     data.displayEverything = false;
   } else {
-    gsap.set(['.outputArea','.inputArea','.submit-btn','.stop-btn'],{display:'block'});
-    gsap.set('.tag-container',{display:'flex',flexWrap:'wrap',overflow:'hidden'})
-    gsap.to(['.outputArea','.inputArea','.submit-btn','.tag-container','.stop-btn'],{opacity:1,ease:'power2.in'});
+    // 展开对话框
+    if (!isFirstTime.value) {
+      gsap.set('.LLM-background',{left:"-28%"})
+      isFirstTime.value = true;
+    }
+    if (data.displayHistory) {
+      // 如果有历史记录，还需要展开它
+      gsap.timeline()
+          .set(['.historyDisplay','.outputArea','.LLM-wrapper','.LLM-background'],{display:'block'})
+          .set('.LLM-wrapper',{opacity: 1})
+          .to(['.outputArea','.inputArea','.tag-container','.bookmark',
+            '.historyDisplay','.LLM-wrapper','.LLM-background'],{left: "+=28%"})
+          // .to('.graph-container',{left:"10%",width:"80%"},"<")
+          .set(['.submit-btn','.stop-btn'],{display:'block'});
+    } else {
+      // 否则仅展开输入输出即可
+      gsap.timeline()
+          .set(['.historyDisplay','.outputArea','.LLM-background'],{display:'block'})
+          .to(['.outputArea','.inputArea','.tag-container','.bookmark','.LLM-background'],{left: "+=28%"})
+          // .to('.graph-container',{left:"10%",width:"80%"})
+          .set(['.submit-btn','.stop-btn'],{display:'block'});
+    }
     data.displayEverything = true;
   }
-}
-
-// 复原输出框
-const refreshPosition = () => {
-  gsap.set('.outputArea',{y:'0',x:'0', width: '50%', height: '30%'})
-  gsap.timeline()
-      .to('.outputArea',{top:'20%',height:'30%'})
-  data.changeArea = false;
 }
 
 // 动态获取输入文本框的 top 值
@@ -644,24 +804,403 @@ const handleScroll = () => {
   autoScroll.value = isAtBottom; // 离底部50px内视为自动滚动开启
 };
 
-// 按钮信息提示（悬停触发）
-// 显示 tooltip
-const showTooltip = (key) => {
-  if (!tooltips[key]) return;
-  gsap.to(tooltips[key], {
-    opacity: 1,
-    duration: 0.2,
+// 按时间排序历史记录
+const groupHistoryByTime = () => {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const oneDay = 24 * 60 * 60 * 1000;
+
+  const result = {
+    today: [],
+    last7days: [],
+    last30days: [],
+    earlier: [],
+  };
+
+  HistoryPreview.value.preview?.forEach(item => {
+    const itemDate = new Date(item.timestamp.replace(/-/g, '/'));
+    itemDate.setHours(itemDate.getHours() + 8);
+    const diffDays = Math.floor((itemDate - today) / oneDay);
+    if (diffDays === 0) {
+      result.today.push(item);
+    } else if (diffDays >= -6) {
+      result.last7days.push(item);
+    } else if (diffDays >= -29) {
+      result.last30days.push(item);
+    } else {
+      result.earlier.push(item);
+    }
   });
+
+  const sortByTimestampDesc = (a, b) => new Date(b.timestamp) - new Date(a.timestamp);
+  result.today.sort(sortByTimestampDesc);
+  result.last7days.sort(sortByTimestampDesc);
+  result.last30days.sort(sortByTimestampDesc);
+  result.earlier.sort(sortByTimestampDesc);
+  return result;
 };
 
-// 隐藏 tooltip
-const hideTooltip = (key) => {
-  if (!tooltips[key]) return;
-  gsap.to(tooltips[key], {
-    opacity: 0,
-    duration: 0.3,
-  });
+// 处理历史记录查询
+const getHistoryPreview = async () => {
+  if (inAnimation.value) return;
+
+  if (data.displayHistory) {
+    // 关闭历史记录
+    requestAnimationFrame(async () => {
+      inAnimation.value = true;
+      if (data.displayEverything) {
+        await gsap.timeline()
+            .to(['.historyDisplay'], { left: '-=28%'})
+            .to('.LLM-wrapper',{opacity: 0},"<")
+            .set(['.historyDisplay','.LLM-wrapper'], { display: 'none'})
+      } else {
+        await gsap.timeline()
+            .set(['.historyDisplay','.LLM-wrapper'], { display: 'none'})
+            .set('.LLM-wrapper',{ left: '0', opacity: 0 })
+      }
+      inAnimation.value = false;
+    })
+  }
+  data.displayHistory = !data.displayHistory;
+  if (data.displayHistory) {
+    // 准备打开历史记录
+    requestAnimationFrame(async () => {
+      inAnimation.value = true;
+      if (data.displayEverything) {
+        // 有输入输出时，仅打开历史记录
+        await gsap.timeline()
+            .set(['.historyDisplay'],{ display: 'block',zIndex: 10000})
+            .set('.LLM-wrapper',{display: 'block'})
+            .to(['.historyDisplay'],{ left: "+=28%"})
+            .to('.LLM-wrapper',{opacity: 1},"<")
+      } else {
+        // 否则输入输出部分也要打开
+        data.displayEverything = true;
+        await gsap.timeline()
+            .set(['.historyDisplay'],{ display: 'block',zIndex: 10000})
+            .set(['.outputArea','.LLM-wrapper','.LLM-background'],{display: 'block'})
+            .to(['.historyDisplay','.inputArea',
+              '.tag-container','.bookmark'],{ left: "+=28%"})
+            // .to('.graph-container',{left:"10%",width:"80%"},"<")
+            .to(['.outputArea','.LLM-background'],{left:"0"},"<")
+            .to('.LLM-wrapper',{opacity: 1},"<")
+            .from('.LLM-wrapper',{ left: "-=28%"},"<")
+            .set(['.submit-btn','.stop-btn'],{display:'block'})
+      }
+      inAnimation.value = false;
+    })
+    const ws = new WebSocket(WS_URL)
+    ws.onopen = () => {
+      try {
+        if (JSON.parse(localStorage.getItem('isApiavailable'))) {
+          const payload = {
+            user_id: userState?.user?.user_id || null,
+            task: "get_preview",
+            source: "geo_graph"
+          }
+          if (ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify(payload))
+          } else {
+            console.error('WebSocket is not open')
+          }
+        }
+        else {
+          console.log("API不可用")
+        }
+      } catch (error) {
+        console.error('请求失败:', error)
+        ws.close();
+      } finally {
+        // extractCoordinates(assistantMessage.content)
+      }
+    }
+    ws.onmessage = (event) => {
+      HistoryPreview.value = reactive(JSON.parse(event.data))
+      console.log(HistoryPreview.value);
+      HistoryPreview.value = groupHistoryByTime()
+      console.log(HistoryPreview.value);
+      ws.close();
+    }
+  }
+}
+
+// 根据前驱 id 获取历史记录
+const loadHistoryById = async (id) => {
+  activeHistoryId.value = id;
+  const ws = new WebSocket(WS_URL)
+  ws.onopen = () => {
+    try {
+      if (JSON.parse(localStorage.getItem('isApiavailable'))) {
+        const payload = {
+          user_id: userState?.user?.user_id || null,
+          task: "get_full_history",
+          precursor_id: id,
+        }
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify(payload))
+        } else {
+          console.error('WebSocket is not open')
+        }
+      }
+      else {
+        console.log("API不可用")
+      }
+    } catch (error) {
+      console.error('请求失败:', error)
+      ws.close();
+    }
+  }
+  ws.onmessage = (event) => {
+    const originMessages = JSON.parse(event.data).history;
+    const newMessages = originMessages.map(obj => {
+      const newObj = {};
+
+      for (const key in obj) {
+        if (obj.hasOwnProperty(key)) { // 确保只遍历对象自身的属性
+          if (key === 'role') {
+            newObj['sender'] = obj[key]; // 替换 "role" 为 "sender"
+          } else {
+            newObj[key] = obj[key]; // 复制其他键值对
+          }
+        }
+      }
+
+      return newObj;
+    });
+    console.log(newMessages);
+    isOldchat.value = JSON.parse(event.data).isOldchat;
+    conversation.value.splice(1, conversation.value.length, ...newMessages);
+    ws.close();
+    getHistoryPreview(); // 关闭历史记录
+  }
+}
+
+// 格式化历史记录内容以及时间
+const formatPreview = (msg) => {
+  return msg.length > 15 ? msg.slice(0, 15) + '...' : msg;
 };
+const formatTime = (timestamp) => {
+  const date = new Date(timestamp.replace(/-/g, '/'));
+  date.setHours(date.getHours() + 8); // 修正时区
+
+  const now = new Date();
+  const pad = (n) => n.toString().padStart(2, '0');
+
+  const isToday = date.toDateString() === now.toDateString();
+  const isThisYear = date.getFullYear() === now.getFullYear();
+
+  if (isToday) {
+    return `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+  } else if (isThisYear) {
+    return `${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  } else {
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  }
+};
+
+// 新建对话
+const newConversation = () => {
+  if (!data.displayEverything) {
+    // 展开对话框
+    changeDisplay();
+  }
+  if (data.displayHistory) {
+    // 收起历史记录
+    getHistoryPreview();
+  }
+  conversation.value = [conversation.value[0]];
+  isOldchat.value = 0;
+};
+
+// 标签颜色映射函数
+const getColorByLabel = (label) => {
+  const colorMap = {
+    Topic: '#FF6B6B',
+    "专题": '#FF6B6B',
+    FirstLevelBranch: '#4ECDC4',
+    "一级分支": '#4ECDC4',
+    SecondLevelBranch: '#45B7D1',
+    "二级分支": '#45B7D1',
+    ThirdLevelBranch: '#96CEB4',
+    "三级分支": '#96CEB4',
+    FourthLevelBranch: '#FFEEAD',
+    "四级分支": '#FFEEAD',
+    FifthLevelBranch: '#FFD3B6',
+    "五级分支": '#FFD3B6',
+    Supplement: '#C3B1E1',
+    "补充": '#C3B1E1',
+  };
+  return colorMap[label] || '#C0C0C0';
+}
+
+// 渲染知识图谱
+const renderKnowledgeGraph = async (cypher) => {
+  const driver = neo4j.driver(
+      "bolt://localhost:7687",
+      neo4j.auth.basic("neo4j", "123456789")
+  );
+  const session = driver.session();
+
+  try {
+    let query;
+    if (cypher) { query = cypher; }
+    else { query = neo4jQuery["earthAndMap"]; }
+    // 查询路径数据
+    const result = await session.run(query);
+
+    const nodes = new Map();
+    const edges = new Map();
+
+    result.records.forEach(record => {
+      const path = record.get('path');
+
+      path.segments.forEach(segment => {
+        // 处理起始节点
+        const startNode = segment.start;
+        nodes.set(startNode.identity.toString(), {
+          id: startNode.identity.toString(),
+          label: startNode.properties.name || startNode.properties.名称 || "未命名节点",
+          properties: startNode.properties,
+          labels: startNode.labels
+        });
+
+        // 处理关系
+        const relationship = segment.relationship;
+        if (nonsenseType.includes(relationship.type)) {
+          relationship.type = '关联';
+        }
+        edges.set(relationship.identity.toString(), {
+          id: relationship.identity.toString(),
+          from: startNode.identity.toString(),
+          to: segment.end.identity.toString(),
+          label: relationship.type,
+          properties: relationship.properties
+        });
+
+        // 处理结束节点
+        const endNode = segment.end;
+        nodes.set(endNode.identity.toString(), {
+          id: endNode.identity.toString(),
+          label: endNode.properties.name || endNode.properties.名称 || "未命名节点",
+          properties: endNode.properties,
+          labels: endNode.labels
+        });
+      });
+    });
+
+    // 转换可视化数据格式
+    const networkData = {
+      nodes: Array.from(nodes.values()).map(node => ({
+        id: node.id,
+        label: node.label,
+        title: `
+          Labels: ${node.labels.join(', ')}
+          Properties: ${JSON.stringify(node.properties, null, 2)}
+        `,
+        color: getColorByLabel(node.labels[0]),
+        font: { color: '#fff' }
+      })),
+      edges: Array.from(edges.values()).map(edge => ({
+        id: edge.id,
+        from: edge.from,
+        to: edge.to,
+        label: edge.label,
+        arrows: 'to',
+        title: `Type: ${edge.label}\nProperties: ${JSON.stringify(edge.properties)}`
+      }))
+    };
+
+    // 可视化配置
+    const options = {
+      nodes: {
+        shape: 'box',
+        margin: 10,
+        size: 30,
+        font: {
+          size: 14,
+          face: 'Microsoft YaHei'
+        }
+      },
+      edges: {
+        width: 2,
+        smooth: {
+          type: 'cubicBezier'
+        }
+      },
+      physics: {
+        stabilization: true,
+        barnesHut: {
+          gravitationalConstant: -2000
+        }
+      },
+      interaction: {
+        hover: true
+      }
+    };
+
+    // 渲染图谱
+    const container = document.getElementById('graph-container');
+    const network = new Network(container, networkData, options);
+    let count = 0;
+
+    // 左移知识图谱，使得位置合适
+    network.on("stabilized", function () {
+      if (count !== 0) return;
+      const deviation = 0;
+      const offsetX = window.innerWidth * deviation;
+      const currentPos = network.getViewPosition();
+      network.moveTo({
+        position: {
+          x: currentPos.x + offsetX,
+          y: currentPos.y
+        },
+        scale: network.getScale()
+      });
+      count++;
+    });
+
+    // 点击节点显示名称
+    network.on("click", function (params) {
+      if (params.nodes.length > 0 && isActive.value) {
+        const nodeId = params.nodes[0];
+        const node = nodes.get(nodeId);
+
+        if (!data.displayEverything) {
+          if (data.displayHistory) {
+            data.displayHistory = false;
+            gsap.set('.LLM-wrapper',{left: "0"});
+          }
+          gsap.timeline()
+              .set('.tag-container',{display: 'flex',flexWrap:'wrap',overflow:'hidden'})
+              .set(['.outputArea','.LLM-background'],{display:'block'})
+              // .to('.graph-container',{left:"10%",width:"80%"})
+              .to(['.outputArea','.inputArea','.bookmark'],{left: "+=28%"},"<")
+              .to('.LLM-background',{left:"0"},"<")
+              .to(['.tag-container'],{left:"1%"},"<")
+              .set(['.submit-btn','.stop-btn'],{display:'block'})
+          data.displayEverything = true;
+        } else {
+          gsap.timeline()
+              .set('.tag-container',{display: 'flex',flexWrap:'wrap',overflow:'hidden'})
+              .to(['.tag-container'],{left:"1%"},"<")
+        }
+
+        const obj = {'input':node.label};
+        const exists = inputBoxes.value.some(item => JSON.stringify(item) === JSON.stringify(obj));
+        if (!exists && inputBoxes.value.length <= 5) {
+          inputBoxes.value.push({'input':node.label});
+        }
+        getInputAreaTop();
+      }
+    });
+
+  } catch (error) {
+    console.error('Neo4j查询错误:', error);
+  } finally {
+    await session.close();
+    await driver.close();
+  }
+}
 onMounted(() => {
   // 加载监听器
   window.addEventListener('resize', updatePosition);
@@ -679,190 +1218,20 @@ onMounted(() => {
     playPromptAudio('greeting');
   },2000)
 
-  // 拖动动画
-  Draggable.create(".outputArea",{
-    bounds:'.LLM-input-output',
-    inertia:true,
-    edgeResistance: 1,
-    onDragEnd: function () {
-      console.log('当前位置：',this.x,this.y);
-    }
-  });
-
   // 加载 Live2D
   loadLive2D();
 
-  // 展示模型动画
-  ScrollTrigger.create({
-    trigger:'.section2',
-    start:'top-=400 top',
-    end:'+=200',
-    scrub:true,
-    animation:
-        gsap.timeline()
-            .to('.section1',{y:'-=100',opacity:0})
-            .from('.section2',{y:'+=100',opacity:0},"<")
-  });
-
-  // 标签颜色映射函数
-  const getColorByLabel = (label) => {
-    const colorMap = {
-      Topic: '#FF6B6B',
-      FirstLevelBranch: '#4ECDC4',
-      SecondLevelBranch: '#45B7D1',
-      ThirdLevelBranch: '#96CEB4',
-      FourthLevelBranch: '#FFEEAD'
-    };
-    return colorMap[label] || '#C0C0C0';
-  }
-
-  // 渲染知识图谱
-  const renderKnowledgeGraph = async () => {
-    const driver = neo4j.driver(
-        "bolt://localhost:7687",
-        neo4j.auth.basic("neo4j", "123456789")
-    );
-    const session = driver.session();
-
-    try {
-      // 查询路径数据
-      const result = await session.run(`
-      MATCH path=(n)-[r]->(m)
-      RETURN path
-      LIMIT 25`);
-
-      const nodes = new Map();
-      const edges = new Map();
-
-      result.records.forEach(record => {
-        const path = record.get('path');
-
-        path.segments.forEach(segment => {
-          // 处理起始节点
-          const startNode = segment.start;
-          nodes.set(startNode.identity.toString(), {
-            id: startNode.identity.toString(),
-            label: startNode.properties.name || startNode.properties.名称 || "未命名节点",
-            properties: startNode.properties,
-            labels: startNode.labels
-          });
-
-          // 处理关系
-          const relationship = segment.relationship;
-          edges.set(relationship.identity.toString(), {
-            id: relationship.identity.toString(),
-            from: startNode.identity.toString(),
-            to: segment.end.identity.toString(),
-            label: relationship.type,
-            properties: relationship.properties
-          });
-
-          // 处理结束节点
-          const endNode = segment.end;
-          nodes.set(endNode.identity.toString(), {
-            id: endNode.identity.toString(),
-            label: endNode.properties.name || endNode.properties.名称 || "未命名节点",
-            properties: endNode.properties,
-            labels: endNode.labels
-          });
-        });
-      });
-
-      // 转换可视化数据格式
-      const networkData = {
-        nodes: Array.from(nodes.values()).map(node => ({
-          id: node.id,
-          label: node.label,
-          title: `
-          Labels: ${node.labels.join(', ')}
-          Properties: ${JSON.stringify(node.properties, null, 2)}
-        `,
-          color: getColorByLabel(node.labels[0]),
-          font: { color: '#fff' }
-        })),
-        edges: Array.from(edges.values()).map(edge => ({
-          id: edge.id,
-          from: edge.from,
-          to: edge.to,
-          label: "关联",
-          arrows: 'to',
-          title: `Type: ${edge.label}\nProperties: ${JSON.stringify(edge.properties)}`
-        }))
-      };
-
-      // 可视化配置
-      const options = {
-        nodes: {
-          shape: 'box',
-          margin: 10,
-          size: 30,
-          font: {
-            size: 14,
-            face: 'Microsoft YaHei'
-          }
-        },
-        edges: {
-          width: 2,
-          smooth: {
-            type: 'cubicBezier'
-          }
-        },
-        physics: {
-          stabilization: true,
-          barnesHut: {
-            gravitationalConstant: -2000
-          }
-        },
-        interaction: {
-          hover: true
-        }
-      };
-
-      // 渲染图谱
-      const container = document.getElementById('graph-container');
-      const network = new Network(container, networkData, options);
-      let count = 0;
-
-      // 左移知识图谱，使得位置合适
-      network.on("stabilized", function () {
-        if (count !== 0) return;
-        const offsetX = window.innerWidth * 0.15;
-        const currentPos = network.getViewPosition();
-        network.moveTo({
-          position: {
-            x: currentPos.x + offsetX,
-            y: currentPos.y
-          },
-          scale: network.getScale()
-        });
-        count++;
-      });
-
-      // 点击节点显示名称
-      network.on("click", function (params) {
-        if (params.nodes.length > 0 && isActive.value) {
-          const nodeId = params.nodes[0];
-          const node = nodes.get(nodeId);
-          gsap.set(['.outputArea','.inputArea','.submit-btn','.stop-btn'],{display:'block'});
-          gsap.set('.tag-container',{display: 'flex',flexWrap:'wrap',overflow:'hidden'});
-          gsap.to(['.outputArea','.inputArea','.submit-btn','.tag-container','.stop-btn'],{opacity:1,ease:'power2.in'});
-          data.displayEverything = true;
-          const obj = {'input':node.label};
-          const exists = inputBoxes.value.some(item => JSON.stringify(item) === JSON.stringify(obj));
-          if (!exists) {
-            inputBoxes.value.push({'input':node.label});
-          }
-          getInputAreaTop();
-        }
-      });
-
-    } catch (error) {
-      console.error('Neo4j查询错误:', error);
-    } finally {
-      await session.close();
-      await driver.close();
-    }
-  }
+  // // 展示模型动画
+  // ScrollTrigger.create({
+  //   trigger:'.section2',
+  //   start:'top-=400 top',
+  //   end:'+=200',
+  //   scrub:true,
+  //   animation:
+  //       gsap.timeline()
+  //           .to('.section1',{y:'-=100',opacity:0})
+  //           .from('.section2',{y:'+=100',opacity:0},"<")
+  // });
 
   // 执行渲染
   renderKnowledgeGraph();
@@ -917,6 +1286,13 @@ watch(() => data.displayEverything, () => {
     }
   })
 })
+
+// 添加图谱请求监听
+watch(() => currentIndex.value, async (val) => {
+  const key = Object.keys(neo4jQuery)[val]
+  const cypher = neo4jQuery[key]
+  await renderKnowledgeGraph(cypher);
+})
 </script>
 
 <style scoped>
@@ -926,28 +1302,79 @@ watch(() => data.displayEverything, () => {
 .tag-container {
   position: fixed;
   bottom: 11%;
-  left: 1%;
-  width: 32%;
+  left: -27%;
+  width: 23%;
   gap: 8px;
-  opacity: 0;
-  display: none;
-  pointer-events: none;
-  z-index: 11;
+  z-index: 12;
 }
 /* 移除滚动条 */
 .tag-container::-webkit-scrollbar {
   display: none;
 }
 
+/* 展开/隐藏对话框 */
+.bookmark {
+  position: fixed;
+  top: 10.5%;
+  left: 0;
+  width: 40px;
+  height: 40px;
+  background-color: #aac6b6;
+  box-shadow: 2px 2px 6px rgba(0,0,0,0.1);
+  color: white;
+  font-size: 24px;
+  text-align: center;
+  line-height: 40px;
+  cursor: pointer;
+  border-radius: 0 8px 8px 0;
+  z-index: 10;
+  pointer-events: auto;
+}
+.bookmark:hover {
+  background-color: #98b2a4; /* hover 时稍微变深 */
+}
+.bookmark2 {
+  top: calc(10.5vh + 45px);
+}
+.bookmark3 {
+  top: calc(10.5vh + 90px);
+}
+
 /* 输入输出区域 */
 .LLM-input-output {
   position: fixed;
-  top: -20%;
-  left: -50%;
-  width: 195%;
-  height: 140%;
+  top: 0;
+  left: 0;
+  width: 28%;
+  height: 100%;
   z-index: 11;
   pointer-events: none;
+}
+
+/* 输入输出背景 */
+.LLM-background {
+  position: fixed;
+  top: 0;
+  left: -28%;
+  width: 28%;
+  height: 100%;
+  display: none;
+  background-color: #e2f0ec;
+  box-shadow: 0 -2px 7px rgba(0, 0, 0, 0.2);
+}
+
+/* 输入输出蒙层 */
+.LLM-wrapper {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 28%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.3);
+  z-index: 100;
+  opacity: 0;
+  display: none;
+  pointer-events: auto;
 }
 
 /* 用户输入框 */
@@ -958,15 +1385,16 @@ watch(() => data.displayEverything, () => {
 }
 .inputArea {
   position: fixed;
-  bottom: 8%;
-  left: 1%;
-  width: 32%;
+  bottom: 2%;
+  left: -27%;
+  width: 26%;
   font-size: 16px;
   border-radius: 50px !important;
   z-index: 11;
-  display: none;
-  opacity: 0;
+  /* display: none;
+  opacity: 0; */
   pointer-events: auto;
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.05);
 }
 :deep(.el-textarea__inner) {
   padding: 10px 25px 35px 15px; /* 调整这个值来控制文字与边框的间距 */
@@ -975,8 +1403,8 @@ watch(() => data.displayEverything, () => {
 /* 输入按钮 */
 .submit-btn,.stop-btn {
   position: fixed;
-  bottom: 9%;
-  right: 68%;
+  bottom: 3%;
+  left: 24%;
   width: 30px;
   height: 30px;
   border-radius: 100%;
@@ -987,7 +1415,6 @@ watch(() => data.displayEverything, () => {
   font-size: 18px;
   z-index: 12;
   display: none;
-  opacity: 0;
   pointer-events: auto;
 }
 /* 终止按钮 */
@@ -1009,25 +1436,129 @@ watch(() => data.displayEverything, () => {
   z-index: 15;
 }
 
+/* 历史记录 */
+.historyDisplay {
+  position: fixed;
+  top: 0;
+  left: -28%;
+  width: 23%;
+  height: 90vh;
+  padding-top: 10vh;
+  background-color: #f9f9f9;
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+  overflow-y: auto;
+  z-index: 1000;
+  border-right: 1px solid #ddd;
+  display: none;
+  pointer-events: auto;
+}
+/* 大标题 */
+.historyDisplay h3 {
+  font-size: 1.3rem;
+  font-weight: bold;
+  padding: 0 20px;
+  margin-bottom: 1rem;
+  color: #2c3e50;
+}
+/* 小标题 */
+.historyDisplay h4 {
+  font-size: 1rem;
+  margin: 1rem 20px 0.5rem;
+  color: #34495e;
+  border-bottom: 1px solid #ccc;
+  padding-bottom: 4px;
+}
+/* 正文 */
+.history-item {
+  padding: 7px 10px;
+  margin: 4px 10px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+  color: #2d2d2d;
+  border-radius: 10px;
+}
+/* 悬停 */
+.history-item:hover {
+  background-color: #ececec;
+}
+/* 选中 */
+.history-item.active {
+  background-color: #d8d8d8;
+}
+/* 时间戳 */
+.timestamp {
+  font-size: 0.8rem;
+  color: #999;
+  margin-left: 10px;
+  white-space: nowrap;
+}
+
+/* 美化滚动条（可选） */
+.historyDisplay::-webkit-scrollbar {
+  width: 8px;
+  height: unset;
+}
+.historyDisplay::-webkit-scrollbar-thumb {
+  background-color: #e3e3e3;
+  border-radius: 10px;
+  border: 4px solid rgba(0, 0, 0, 0);
+  background-clip: unset;
+  box-shadow: unset;
+  transition: background 0.3s ease;
+}
+.historyDisplay::-webkit-scrollbar-track {
+  background-color: transparent;
+  border-radius: unset;
+  box-shadow: unset;
+}
+.historyDisplay::-webkit-scrollbar-thumb:hover {
+  background-color: #d1d1d1;
+}
+.outputArea::-webkit-scrollbar {
+  width: 8px;
+}
+.outputArea::-webkit-scrollbar-thumb {
+  box-shadow: unset;
+  background-clip: unset;
+}
+
+/* 无历史记录 */
+.no-history {
+  text-align: center;
+  margin-top: 20vh;
+  color: #999;
+  font-size: 14px;
+}
+.no-history-icon {
+  font-size: 36px;
+  display: block;
+  margin-bottom: 0.5rem;
+}
+.no-history-text {
+  font-size: 16px;
+  color: #666;
+}
+
 /* LLM输出框 */
 .outputArea {
   position: fixed;
-  top: 20%;
-  left: 1%;
-  width: 30%;
-  height: 30%;
+  top: 10%;
+  left: -28%;
+  width: calc(28% - 30px);
+  height: calc(65vh - 15px);
   color: #0d0f1a;
-  border: 1px solid #0d0f1a;
-  border-radius: 30px;
-  padding: 15px;
+  padding: 0 15px 15vh 15px;
   font-size: 16px;
   overflow-y: auto;
   overflow-x: hidden;
   line-height: 1.8;
   z-index: 11;
   display: none;
-  opacity: 0;
-  background-color: rgba(180, 170, 170, 0.5);
+  background-color: #e2f0ec;
   pointer-events: auto;
 }
 
@@ -1078,29 +1609,6 @@ watch(() => data.displayEverything, () => {
   bottom: -30px;
 }
 
-/* 悬停提示文字 */
-.refresh-tooltip,.zoom-tooltip,.convenient-tooltip {
-  position: fixed;
-  background: rgba(0,0,0,0.8);
-  color: white;
-  padding: 8px 12px;
-  border-radius: 4px;
-  pointer-events: none;
-  opacity: 0;
-  right: 12%;
-  z-index: 102;
-}
-.refresh-tooltip {
-  bottom: 22%;
-}
-.zoom-tooltip {
-  bottom: 28%;
-}
-.convenient-tooltip {
-  top: 10%;
-  right: 2.5%;
-}
-
 /* Live2D */
 canvas {
   position: fixed;
@@ -1108,33 +1616,6 @@ canvas {
   right: -35%;
   border: none;
   z-index: 100;
-}
-
-/* 便捷标签容器 */
-.convenient-tags-container {
-  position: fixed;
-  bottom: 21%;
-  right: 10%;
-  z-index: 101;
-  width: 150px;
-  height: 35px;
-  border-radius: 30px;
-  rotate: 90deg;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-/* 便捷标签 */
-.zoom-outputArea-btn,.refresh-outputArea-btn {
-  padding: 6px;
-  height: 30px;
-  width: 30px;
-  border-radius: 100%;
-  justify-content: center;
-  align-items: center;
-  top: 21%;
-  rotate: -90deg;
 }
 
 /* 公共容器 */
@@ -1230,12 +1711,20 @@ canvas {
   letter-spacing: 1px;
 }
 
+/* 切换图谱按钮 */
+.graph-changer {
+  position: absolute;
+  top: 8%;
+  right: calc(50% - 130px);
+  z-index: 1;
+}
+
 /* 知识图谱 */
 .graph-container {
-  width: 75%;
+  width: 80%;
   height: 90%;
   position: absolute;
   top: 10%;
-  left: 25%;
+  left: 10%;
 }
 </style>

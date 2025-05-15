@@ -11,9 +11,11 @@
       它是自然之手在大地上的瑰丽画卷，描绘出山川、谷地与平原。
     </div>
   </section>
+  <!--  引导图片  -->
+  <ScrollButton sectionName="#section2"></ScrollButton>
   <!--  展示页 -->
   <section>
-    <div style="background-color: #2c2e3a;position: absolute;top: 100vh;width: 100%;height: 20vh;"></div>
+    <div style="background-color: #2c2e3a;position: absolute;top: 100vh;width: 100%;height: 20vh;" id="section2"></div>
     <div class="container section2" @click="logActivity('study')">
       <WaterfallApp />
     </div>
@@ -27,6 +29,7 @@ import { onMounted } from "vue";
 import { logActivity } from "@/store/usefulFunction.js";
 // import ShowGITF from "@/objects/ShowGITF.vue";
 import WaterfallApp from '@/components/WaterfallApp.vue'
+import ScrollButton from "@/components/ScrollButton.vue";
 gsap.registerPlugin(ScrollTrigger)
 
 onMounted(() => {

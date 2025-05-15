@@ -10,10 +10,11 @@
     <div class="section1-subtitle">
       一幅连接世界与思想的神奇画布，引导着我们的探索之旅。
     </div>
+    <ScrollButton sectionName="#section2" effect="light"></ScrollButton>
   </section>
   <!--  展示页 -->
   <section>
-    <div class="container section2">
+    <div class="container section2" id="section2">
       <ShowWorld />
     </div>
   </section>
@@ -21,6 +22,7 @@
 
 <script setup>
 import ShowWorld from "@/objects/ShowWorld.vue";
+import ScrollButton from "@/components/ScrollButton.vue";
 </script>
 
 <style scoped>

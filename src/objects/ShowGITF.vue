@@ -22,6 +22,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { Sky } from 'three/addons/objects/Sky.js';
+import config from '@/store/config.json'
 const loadingProgress = ref(0);
 const loadingRef = ref(null);
 const isLoading = ref(true);
@@ -67,10 +68,23 @@ onMounted(() => {
 
 // 清理资源
 onBeforeUnmount(() => {
-    if (renderer) {
-        renderer.dispose();
-        renderer.forceContextLoss();
+  if (renderer) {
+    renderer.forceContextLoss();
+    renderer.dispose();
+    renderer.domElement.remove();
+  }
+
+  scene.traverse((object) => {
+    if (object.geometry) object.geometry.dispose();
+    if (object.material) {
+      if (Array.isArray(object.material)) {
+        object.material.forEach((material) => material.dispose());
+      } else {
+        object.material.dispose();
+      }
     }
+  });
+  scene.clear();
 });
 
 function initThree() {
@@ -182,9 +196,23 @@ function loadModel() {
         isLoading.value = false;
         model = gltf.scene;
 
+        const posConfig = config[query.id].pos;
+        const scaleConfig = config[query.id].scale;
+        const cameraConfig = config[query.id].camera;
+        const pos = {
+          x: posConfig?.x || 0,
+          y: posConfig?.y || -5,
+          z: posConfig?.z || 0,
+        }
+        const scale = {
+          x: scaleConfig?.x || 5,
+          y: scaleConfig?.y || 5,
+          z: scaleConfig?.z || 5,
+        }
+
         // 调整模型比例（建议缩小以适应天空）
-        model.scale.set(5, 5, 5);
-        model.position.set(0, -5, 0);
+        model.scale.set(scale.x, scale.y, scale.z);
+        model.position.set(pos.x, pos.y, pos.z);
 
         // 包围盒计算
         const box = new THREE.Box3().setFromObject(model);
@@ -195,7 +223,7 @@ function loadModel() {
         const maxDim = Math.max(size.x, size.y, size.z);
         const fov = camera.fov * (Math.PI / 180);
         const cameraZ = Math.abs(maxDim / (2 * Math.tan(fov / 2)));
-        camera.position.set(center.x, center.y + 10, cameraZ * 0.8);
+        camera.position.set(center.x + cameraConfig?.x || 0, center.y + cameraConfig?.y || 10, cameraZ * 0.8);
         camera.lookAt(center);
 
         // 阴影处理
@@ -248,9 +276,14 @@ function onCanvasClick(event) {
 }
 
 function onWindowResize() {
-    camera.aspect = container.value.clientWidth / container.value.clientHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(container.value.clientWidth, container.value.clientHeight);
+  if (!container.value) return; // 防止空引用
+
+  const width = container.value.clientWidth || 1;
+  const height = container.value.clientHeight || 1;
+
+  camera.aspect = width / height;
+  camera.updateProjectionMatrix();
+  renderer.setSize(width, height);
 }
 
 function animate() {

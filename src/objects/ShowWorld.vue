@@ -118,10 +118,10 @@ onMounted(() => {
     }).addTo(map);
 
     // 添加中文标注图层（GCJ-02坐标系）
-    // L.tileLayer(`http://t0.tianditu.gov.cn/cia_w/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=cia&STYLE=default&TILEMATRIXSET=w&FORMAT=tiles&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}&tk=${TDU_Key}`, {
-    //     maxZoom: 18,
-    //     subdomains: ['a', 'b', 'c']
-    // }).addTo(map);
+    L.tileLayer(`http://t0.tianditu.gov.cn/cia_w/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=cia&STYLE=default&TILEMATRIXSET=w&FORMAT=tiles&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}&tk=${TDU_Key}`, {
+        maxZoom: 18,
+        subdomains: ['a', 'b', 'c']
+    }).addTo(map);
 });
 
 // 归一化经纬度

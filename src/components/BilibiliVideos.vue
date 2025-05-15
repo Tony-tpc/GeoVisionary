@@ -100,13 +100,13 @@ watch(() => props.currentPage, fetchVideos);
       <a :href="video.videoUrl" target="_blank" class="video-link"
          @click="logActivity('click','video',video.contentKey)">
         <div class="video-card">
-          <img :src="`http://localhost:8040/proxy/proxy-image/?url=${video.cover}`" alt="视频封面" class="video-cover">
+          <img :src="`http://localhost:8040/proxy/proxy-image/?url=${video.cover}&type=bilibili`" alt="视频封面" class="video-cover">
           <div class="video-info">
             <h3 class="video-title">{{ video.title }}</h3>
             <p class="video-duration">时长: {{ video.duration }}</p>
             <p class="video-time">发布时间: {{ video.publishTime }}</p>
             <div class="video-author">
-              <img :src="`http://localhost:8040/proxy/proxy-image/?url=${video.authorAvatar}`" alt="作者头像" class="author-avatar">
+              <img :src="`http://localhost:8040/proxy/proxy-image/?url=${video.authorAvatar}&type=biliAuthor`" alt="作者头像" class="author-avatar">
               <a :href="video.authorUrl" target="_blank" class="author-name">{{ video.author }}</a>
             </div>
           </div>

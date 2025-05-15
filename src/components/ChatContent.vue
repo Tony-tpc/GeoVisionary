@@ -152,10 +152,13 @@ const updateCursor = () => {
   pos.x = rect.left - domRect.left;
   const thinkDom = document.getElementById(`thinking${props.index}`);
   if (thinkDom && parsedContent.value.main) {
-    pos.y = rect.top - domRect.top + thinkDom.getBoundingClientRect().height + 62;
+    // 正文
+    pos.y = rect.top - domRect.top + thinkDom.getBoundingClientRect().height + 65;
   } else if (thinkDom) {
-    pos.y = rect.top - domRect.top + 45;
+    // 思考
+    pos.y = rect.top - domRect.top + 50;
   } else {
+    // 等待响应
     pos.y = rect.top - domRect.top;
     pos.x = rect.left - domRect.left + 82;
   }

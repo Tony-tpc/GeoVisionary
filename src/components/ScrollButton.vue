@@ -13,6 +13,10 @@ const props = defineProps({
   sectionName: {
     type: String,
     required: true,
+  },
+  effect: {
+    type: String,
+    default: "dark",
   }
 })
 
@@ -34,9 +38,15 @@ onMounted(() => {
 <template>
   <!--  引导图片  -->
   <div class="continue-div">
-    <el-button class="continue-button" @click="scrollToOtherSection">
-      <img src="../assets/continue.svg" alt="继续" loading="lazy" class="continue-photo"/>
-    </el-button>
+    <el-tooltip
+      :effect="props.effect === 'dark' ? 'dark' : 'light' "
+      content="立即体验"
+      placement="top"
+    >
+      <el-button class="continue-button" @click="scrollToOtherSection">
+        <img src="../assets/continue.svg" alt="继续" loading="lazy" class="continue-photo"/>
+      </el-button>
+    </el-tooltip>
   </div>
 </template>
 

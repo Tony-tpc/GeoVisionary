@@ -8,7 +8,7 @@
       <template v-if="HistoryPreview.today?.length">
         <h4>今天</h4>
         <div v-for="item in HistoryPreview.today" :key="item.precursor_id" class="history-item"
-             @click="loadHistoryById(item.precursor_id)">
+             @click="loadHistoryById(item.precursor_id)" :class="{ active: activeHistoryId === item.precursor_id }">
           {{ formatPreview(item.user_msg) }}
           <span class="timestamp">{{ formatTime(item.timestamp) }}</span>
         </div>
@@ -17,7 +17,7 @@
       <template v-if="HistoryPreview.last7days?.length">
         <h4>近7天</h4>
         <div v-for="item in HistoryPreview.last7days" :key="item.precursor_id" class="history-item"
-             @click="loadHistoryById(item.precursor_id)">
+             @click="loadHistoryById(item.precursor_id)" :class="{ active: activeHistoryId === item.precursor_id }">
           {{ formatPreview(item.user_msg) }}
           <span class="timestamp">{{ formatTime(item.timestamp) }}</span>
         </div>
@@ -26,7 +26,7 @@
       <template v-if="HistoryPreview.last30days?.length">
         <h4>近30天</h4>
         <div v-for="item in HistoryPreview.last30days" :key="item.precursor_id" class="history-item"
-             @click="loadHistoryById(item.precursor_id)">
+             @click="loadHistoryById(item.precursor_id)" :class="{ active: activeHistoryId === item.precursor_id }">
           {{ formatPreview(item.user_msg) }}
           <span class="timestamp">{{ formatTime(item.timestamp) }}</span>
         </div>
@@ -35,7 +35,7 @@
       <template v-if="HistoryPreview.earlier?.length">
         <h4>更早</h4>
         <div v-for="item in HistoryPreview.earlier" :key="item.precursor_id" class="history-item"
-             @click="loadHistoryById(item.precursor_id)">
+             @click="loadHistoryById(item.precursor_id)" :class="{ active: activeHistoryId === item.precursor_id }">
           {{ formatPreview(item.user_msg) }}
           <span class="timestamp">{{ formatTime(item.timestamp) }}</span>
         </div>
@@ -201,7 +201,7 @@ const coordinates = ref([])
 const updateFlag = ref(0)
 const isOldchat = ref(0)
 const hasInput = computed(() => inputText.value.trim() !== '')
-
+const activeHistoryId = ref('')
 
 
 
@@ -216,6 +216,7 @@ const getHistoryPreview = async () => {
         const payload = {
           user_id: userState?.user?.user_id || null,
           task: "get_preview",
+          source: "world_map"
         }
         if (ws.readyState === WebSocket.OPEN) {
           ws.send(JSON.stringify(payload))
@@ -247,9 +248,21 @@ const formatPreview = (msg) => {
 };
 const formatTime = (timestamp) => {
   const date = new Date(timestamp.replace(/-/g, '/'));
-  date.setHours(date.getHours() + 8); // 加8小时
+  date.setHours(date.getHours() + 8); // 修正时区
+
+  const now = new Date();
   const pad = (n) => n.toString().padStart(2, '0');
-  return `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+
+  const isToday = date.toDateString() === now.toDateString();
+  const isThisYear = date.getFullYear() === now.getFullYear();
+
+  if (isToday) {
+    return `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+  } else if (isThisYear) {
+    return `${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  } else {
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  }
 };
 
 const toggleHistory = () => {
@@ -312,6 +325,7 @@ const groupHistoryByTime = () => {
 
 
 const loadHistoryById = async (id) => {
+  activeHistoryId.value = id;
   const ws = new WebSocket(WS_URL)
   ws.onopen = () => {
     try {
@@ -342,6 +356,7 @@ const loadHistoryById = async (id) => {
     console.log(isOldchat.value);
     messages.splice(0, messages.length, ...newMessages);
     ws.close();
+    toggleHistory();
   }
 }
 
@@ -404,6 +419,7 @@ const sendMessage = async (latitude = null, longitude = null) => {
           user_id: userState?.user?.user_id || null,
           message: question,
           isOldchat: isOldchat.value,
+          source: "world_map"
         }
         // 消息发送
         if (ws.readyState === WebSocket.OPEN) {
@@ -609,7 +625,11 @@ defineExpose({
 }
 
 .history-item:hover {
-  background: #ebebeb;
+  background: #ececec;
+}
+
+.history-item.active {
+  background: #d8d8d8;
 }
 
 .chat-main {

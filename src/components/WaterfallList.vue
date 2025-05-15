@@ -19,7 +19,7 @@
           class="bg-gray-900 rounded-lg shadow-md overflow-hidden transition-all duration-300 ease-linear hover:shadow-lg hover:shadow-gray-600 group"
           @click="handleClick(item)">
           <div class="overflow-hidden">
-            <LazyImg :url="url" title="title" :alt="item.name"
+            <LazyImg :url="url" :title="decodeURIComponent(item.name)" :alt="item.name"
               class="cursor-pointer transition-all duration-300 ease-linear group-hover:scale-105" @load="imageLoad"
               @error="imageError" @success="imageSuccess" />
           </div>
@@ -59,7 +59,7 @@ import { LazyImg, Waterfall } from 'vue-waterfall-plugin-next'
 import 'vue-waterfall-plugin-next/dist/style.css'
 import type { ViewCard } from './waterfall.js'
 import { getList } from './api.js'
-import router from "@/router";
+import { useRouter } from 'vue-router'
 
 const props = defineProps({
   list: {
@@ -82,6 +82,7 @@ const emits = defineEmits({
 const list = ref<ViewCard[]>([])
 const page = ref(1)
 const loading = ref(true)
+const router = useRouter()
 
 onMounted(() => {
   handleLoadMore()
@@ -103,13 +104,18 @@ function handleDelete(item: ViewCard, index: number) {
   list.value.splice(index, 1)
 }
 
-function handleClick(item: ViewCard) {
+async function handleClick(item: ViewCard) {
   console.log(item);
   // router.push()
-  router.push({
+  await router.isReady() // 保证路由准备完毕再推送
+  await router.push({
     path:'/navigator/glb',
     query: { id:item.id }  // 可选查询参数
   })
+  // if (!firstLoad.value) {
+  //   location.reload();
+  //   firstLoad.value = true
+  // }
   // emits('cardClick', item)
 }
 

@@ -18,7 +18,7 @@ const props = defineProps({
     default: () => ({
       name: 'You',
       bgColor: '#007bff',
-      textColor: '#ffffff'
+      textColor: '#0d0f1a'
     })
   },
   llmConfig: {
@@ -26,7 +26,7 @@ const props = defineProps({
     default: () => ({
       name: 'Assistant',
       bgColor: '#2d2d2d',
-      textColor: '#ffffff',
+      textColor: '#0d0f1a',
       errorColor: '#ff4444',
     })
   },

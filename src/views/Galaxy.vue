@@ -10,10 +10,11 @@
     <div class="section1-subtitle">
       是夜空中跨越时空的华章，谱写着恒星与能量交织的永恒诗篇。
     </div>
+    <ScrollButton sectionName="#section2"></ScrollButton>
   </section>
   <!--  展示页 -->
   <section>
-    <div class="container section2">
+    <div class="container section2" id="section2">
       <ShowSolar />
     </div>
   </section>
@@ -21,6 +22,7 @@
 
 <script setup>
 import ShowSolar from "@/objects/ShowSolar.vue";
+import ScrollButton from "@/components/ScrollButton.vue";
 </script>
 
 <style scoped>

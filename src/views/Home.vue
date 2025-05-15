@@ -144,17 +144,16 @@
         <!--    粒子背景 + 上、下、左、右四个视频  -->
         <div id="video-particles" class="particles-container">
           <div class="upper-left">
-            <img src="../assets/home-images/地形.jpg" loading="lazy" class="video1" alt=""/>
-            <!-- <video src="../assets/videos/videoName.mp4" autoplay muted loop class="video1"/> -->
+            <video src="../assets/videos/landform.mkv" autoplay muted loop class="video1"/>
           </div>
           <div class="upper-right">
-            <img src="../assets/home-images/月相.jpeg" loading="lazy" class="video2" alt=""/>
+            <video src="../assets/videos/moonphase.mkv" autoplay muted loop class="video2"/>
           </div>
           <div class="lower-left">
-            <img src="../assets/home-images/星系.jpg" loading="lazy" class="video3" alt=""/>
+            <video src="../assets/videos/galaxy.mkv" autoplay muted loop class="video3"/>
           </div>
           <div class="lower-right">
-            <img src="../assets/home-images/地图.jpg" loading="lazy" class="video4" alt=""/>
+            <video src="../assets/videos/worldmap.mkv" autoplay muted loop class="video4"/>
           </div>
           <!--   文字介绍  -->
           <div>
@@ -759,13 +758,13 @@ onMounted(() => {
       pin:true,
       animation:
           gsap.timeline()
-              .to('.upper-left',{left:"14%",top:"15%",height:"70%",width:"70%",zIndex:3,yoyo:true,filter: "blur(0px)",duration:0.7,opacity:1,repeat:1,repeatDelay:1,boxShadow: "0px 0px 20px rgba(255, 255, 255, 0.8)"})
+              .to('.upper-left',{left:"17%",top:"12%",height:"73%",width:"65%",zIndex:3,yoyo:true,filter: "blur(0px)",duration:0.7,opacity:1,repeat:1,repeatDelay:1,boxShadow: "0px 0px 20px rgba(255, 255, 255, 0.8)"})
               .to('.video-text-1',{opacity:1,duration:0.7,repeat:1,repeatDelay:1,yoyo:true},"<")
-              .to('.upper-right',{left:"14%",top:"15%",height:"70%",width:"70%",zIndex:3,yoyo:true,filter: "blur(0px)",duration:0.7,opacity:1,repeat:1,repeatDelay:1,boxShadow: "0px 0px 20px rgba(255, 255, 255, 0.8)"})
+              .to('.upper-right',{left:"17%",top:"12%",height:"73%",width:"65%",zIndex:3,yoyo:true,filter: "blur(0px)",duration:0.7,opacity:1,repeat:1,repeatDelay:1,boxShadow: "0px 0px 20px rgba(255, 255, 255, 0.8)"})
               .to('.video-text-2',{opacity:1,duration:0.7,repeat:1,repeatDelay:1,yoyo:true},"<")
-              .to('.lower-left',{left:"14%",top:"15%",height:"70%",width:"70%",zIndex:3,yoyo:true,filter: "blur(0px)",duration:0.7,opacity:1,repeat:1,repeatDelay:1,boxShadow: "0px 0px 20px rgba(255, 255, 255, 0.8)"})
+              .to('.lower-left',{left:"17%",top:"12%",height:"73%",width:"65%",zIndex:3,yoyo:true,filter: "blur(0px)",duration:0.7,opacity:1,repeat:1,repeatDelay:1,boxShadow: "0px 0px 20px rgba(255, 255, 255, 0.8)"})
               .to('.video-text-3',{opacity:1,duration:0.7,repeat:1,repeatDelay:1,yoyo:true},"<")
-              .to('.lower-right',{left:"14%",top:"15%",height:"70%",width:"70%",zIndex:3,yoyo:true,filter: "blur(0px)",duration:0.7,opacity:1,repeat:1,repeatDelay:1,boxShadow: "0px 0px 20px rgba(255, 255, 255, 0.8)"})
+              .to('.lower-right',{left:"17%",top:"12%",height:"73%",width:"65%",zIndex:3,yoyo:true,filter: "blur(0px)",duration:0.7,opacity:1,repeat:1,repeatDelay:1,boxShadow: "0px 0px 20px rgba(255, 255, 255, 0.8)"})
               .to('.video-text-4',{opacity:1,duration:0.7,repeat:1,repeatDelay:1,yoyo:true},"<")
               .to('.nothing',{opacity:0,duration:2},">+=0.7")
     })

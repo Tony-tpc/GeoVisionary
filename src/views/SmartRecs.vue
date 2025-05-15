@@ -68,9 +68,16 @@
 
         <!--  返回按钮  -->
         <div class="reverse-button" v-if="data.userChoice === 'videos' || data.userChoice === 'articles'">
-          <el-button class="circular-button" @click="handleBackButton">
-            <el-icon size="30"><Back /></el-icon>
-          </el-button>
+          <el-tooltip
+              popper-class="tooltips"
+              effect="dark"
+              content="返回"
+              placement="top"
+          >
+            <el-button class="circular-button" @click="handleBackButton">
+              <el-icon size="30"><Back /></el-icon>
+            </el-button>
+          </el-tooltip>
         </div>
       </div>
     </div>

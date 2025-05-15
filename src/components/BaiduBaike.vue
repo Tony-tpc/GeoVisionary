@@ -173,7 +173,7 @@ onUnmounted(() => {
           <div class="baike-content">
             <div class="image-wrapper">
               <img
-                  :src="backendAPI + `?url=${baike.imageUrl}`"
+                  :src="backendAPI + `?url=${baike.imageUrl}&type=baidu`"
                   :alt="`${baike.keyword}百科`"
                   crossorigin="anonymous"
                   loading="lazy"

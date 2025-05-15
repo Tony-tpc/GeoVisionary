@@ -15,7 +15,7 @@
         在这片智慧的天地里，每一道问题都是通往大自然奥秘的钥匙。通过测试与解析，你将踏上心灵之旅，深挖地理的千丝万缕，揭开知识的面纱。
       </div>
       <!--  引导图片  -->
-      <ScrollButton sectionName="#section2"></ScrollButton>
+      <ScrollButton sectionName="#section2" effect="light"></ScrollButton>
     </div>
   </section>
   <!--  测试 + 解析 -->
