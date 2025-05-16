@@ -40,30 +40,59 @@
       <div class="information-display">
         <!--  视频部分  -->
         <div class="videos-container" v-if="data.userChoice === 'videos'">
+          <div class="video-search">
+            <SearchBar search-type="video" @search="searchContent" @reset="() => {data.searched = false;}"/>
+          </div>
           <div class="video-indent"></div>
           <div class="videos-title"></div>
-          <BilibiliVideos :videos="displayVideos" :currentPage="currentPage"></BilibiliVideos>
+          <BilibiliVideos :videos="searchedVideos" :current-page="searchedPage" v-if="data.searched" />
+          <BilibiliVideos :videos="displayVideos" :currentPage="currentPage" v-else/>
+          <NoResult v-if="data.searched && (searchedTotal === 0)" />
           <div class="pagination-block">
-            <el-pagination
-                v-model:current-page="currentPage"
-                hide-on-single-page
-                :page-size="pageSize"
-                :size="'default'"
-                :disabled="disabled"
-                background
-                layout="total, prev, pager, next, jumper"
-                :total="total"
-                @current-change="handleCurrentChange"
-            />
+            <div  v-if="!data.searched">
+              <el-pagination
+                  v-model:current-page="currentPage"
+                  hide-on-single-page
+                  :page-size="pageSize"
+                  :size="'default'"
+                  :disabled="disabled"
+                  background
+                  layout="total, prev, pager, next, jumper"
+                  :total="total"
+                  @current-change="handleCurrentChange"
+              />
+            </div>
+            <div v-else>
+              <el-pagination
+                  v-model:current-page="searchedPage"
+                  hide-on-single-page
+                  :page-size="pageSize"
+                  :size="'default'"
+                  :disabled="disabled"
+                  background
+                  layout="total, prev, pager, next, jumper"
+                  :total="searchedTotal"
+                  @current-change="handleSearchChange"
+
+              />
+            </div>
           </div>
         </div>
 
         <!--  图文内容  -->
         <div class="img-articles-container" v-if="data.userChoice === 'articles'" ref="articlesContainer">
-          <div>
+          <div class="text-search">
+            <SearchBar search-type="text" @search="searchContent" @reset="() => {data.searched = false;}"/>
+          </div>
+          <div v-if="!data.searched">
             <BaiduBaike @update-bg="updateBackground"
                         :keyword="data.keywordList"/>
           </div>
+          <div v-else-if="searchedText.length > 0">
+            <BaiduBaike @update-bg="updateBackground"
+                        :keyword="searchedText"/>
+          </div>
+          <NoResult v-if="data.searched && searchedText.length === 0"/>
         </div>
 
         <!--  返回按钮  -->
@@ -99,6 +128,8 @@ import BilibiliVideos from "@/components/BilibiliVideos.vue";
 import ScrollButton from "@/components/ScrollButton.vue";
 import Loading from "@/components/Loading.vue"
 import { getRecommendations } from "@/store/usefulFunction.js";
+import SearchBar from "@/components/SearchBar.vue";
+import NoResult from "@/components/NoResult.vue";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -107,23 +138,34 @@ const data = reactive({
   videos:[], // 视频信息
   keywordList: [], // 关键词列表
   userChoice: '',
+  searched: false,
+  searchedVideos: []
 })
 
 const currentPage = ref(1); // 当前页面
+const searchedPage = ref(1); // 搜索页面
 const disabled = ref(false); // 禁用分页
 const total = computed(() => data.videos.length) // 视频总数量
+const searchedTotal = computed(() => data.searchedVideos.length)
 const pageSize = ref(12); // 页面视频数量
 const lastIndex = computed(() => currentPage.value * pageSize.value); // 当前页最后一个视频下标（不包括）
+const lastSearchedIndex = computed(() => searchedPage.value * pageSize.value);
+const domain = 'http://localhost:8040'; // 后端域名
 
 // 展示视频内容
 const displayVideos = computed(() => data.videos.slice(lastIndex.value - pageSize.value, lastIndex.value))
+const searchedVideos = computed(() => data.searchedVideos.slice(lastSearchedIndex.value - pageSize.value, lastSearchedIndex.value));
 
 const articlesContainer = ref(null); // 图文容器
+const searchedText = ref([]);
 const colorThief = new ColorThief() // 颜色聚合算法类
 
 // 处理页面切换
 const handleCurrentChange = (val) => {
   currentPage.value = val;
+}
+const handleSearchChange = (val) => {
+  searchedPage.value = val;
 }
 
 // 选中内容
@@ -160,6 +202,37 @@ const updateBackground = async (img) => {
 const handleBackButton = async () => {
   await gsap.to('.information-display',{opacity: 0})
   data.userChoice = '';
+  data.searched = false;
+}
+
+// 搜索视频
+const typeSearch = async (query, type) => {
+  const url = domain + '/api/search-recommendation/';
+  const response = await fetch(url, {
+    method: 'POST',
+    body: JSON.stringify({
+      search_type: type,
+      search_query: query,
+    }),
+    headers: {
+      'Content-Type': 'application/json',
+    }
+  });
+  const data = await response.json();
+  console.log(data);
+  return data;
+}
+
+// 搜索内容
+const searchContent = async ({ type, keyword }) => {
+  if (type === "video") {
+    const responseData = await typeSearch(keyword, type);
+    data.searchedVideos = responseData;
+  } else if (type === "text") {
+    const responseData = await typeSearch(keyword, type);
+    searchedText.value = responseData;
+  }
+  data.searched = true;
 }
 
 onMounted(() => {
@@ -326,6 +399,13 @@ onMounted(() => {
   top: 100px;
 }
 
+/* 视频搜索 */
+.video-search {
+  position: absolute;
+  top: 9%;
+  right: 3%;
+}
+
 .video-indent {
   width: 100%;
   height: 15vh;
@@ -333,9 +413,16 @@ onMounted(() => {
 /* 视频容器 */
 .videos-container {
   position: relative;
-  top: 0;
+  top: 10px;
   width: 100%;
   min-height: 85vh;
+}
+
+.text-search {
+  position: fixed;
+  top: 10%;
+  right: 3%;
+  z-index: 1;
 }
 
 /* 图文容器 */
