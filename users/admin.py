@@ -254,7 +254,8 @@ class UserHistoryAdmin(admin.ModelAdmin):
 admin.site.register(UserHistory, UserHistoryAdmin)
 
 class UserConversationAdmin(admin.ModelAdmin):
-    list_display = ['get_frontend_user','get_precursor_id','get_session_id','get_timestamp','get_user_message','get_llm_response']
+    list_display = ['get_frontend_user','get_precursor_id','get_session_id','get_timestamp',
+                    'get_user_message','get_llm_response','get_topics']
     list_per_page = 10
     search_fields = ['frontend_user__username','session_id','timestamp']
 
@@ -286,6 +287,10 @@ class UserConversationAdmin(admin.ModelAdmin):
     def get_llm_response(self, obj: UserConversation):
         return obj.llm_response[:100]
     get_llm_response.short_description = 'llm输出'
+
+    def get_topics(self, obj: UserConversation):
+        return "，".join(v.name for v in obj.topic_relationship.all()) if len(obj.topic_relationship.all()) > 0 else '无'
+    get_topics.short_description = '考点'
 
 admin.site.register(UserConversation,UserConversationAdmin)
 

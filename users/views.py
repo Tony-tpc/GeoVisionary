@@ -17,7 +17,7 @@ from django.contrib.auth.hashers import make_password, check_password
 
 from GeoVisionary_Backend import settings
 from users.utils.MyJWT import generate_tokens, decode_token
-from django.db.models import Prefetch
+from django.db.models import Prefetch, Q
 from .models import FrontendUser, Problem, ExamSet, Category, UserHistory, UserLearningBehavior, RecommendationContent, \
     UserRating, Video, TextContent, RecommendationScore, UserFavorite, Feedback
 from .serializers import FrontendUserSerializer, ProblemSerializer, ExamSetSerializer, UserHistorySerializer, \
@@ -756,6 +756,35 @@ def get_favorites(request):
     print(favorite_content)
     return Response(favorite_content,status=status.HTTP_200_OK)
 
+@api_view(['POST'])
+def search_recommendation(request):
+    data = request.data
+    search_type = data['search_type'] # 查询类型（支持收藏/图文/视频）
+    search_query = data['search_query'] # 查询内容
+    if search_type == 'collection':
+        user = data['user']
+        user_object = FrontendUser.objects.get(user_id=user['user_id'])
+        if not user_object:
+            return Response('用户不存在！',status=status.HTTP_404_NOT_FOUND)
+        # 此部分需要补全
+        user_collections = UserFavorite.objects.filter(user_id=user['user_id'], content__content_key__icontains=search_query)
+
+    elif search_type == 'video':
+        videos = []
+        video_objects = Video.objects.filter(title__icontains=search_query)
+        for obj in video_objects:
+            videos.append({
+                "bvid": obj.bvid,
+                "p": obj.p,
+            })
+        return Response(videos,status=status.HTTP_200_OK)
+    elif search_type == 'text':
+        keywords = []
+        text_objects = TextContent.objects.filter(Q(keyword__icontains=search_query) | Q(description__icontains=search_query))
+        for obj in text_objects:
+            keywords.append(obj.keyword)
+        return Response(keywords,status=status.HTTP_200_OK)
+
 @api_view(['GET'])
 def send_graph(request):
     # 节点信息，样式诸如   { "id": 0, 其他字段: 值 }
@@ -794,10 +823,10 @@ def send_graph(request):
 
         user_list.append({
             "id": user_id,
-            "content_click_rate": user_behavior.content_click_rate,
-            "study_frequency_last_7_days": user_behavior.study_frequency_last_7_days,
-            "active_time_distribution": user_behavior.active_time_distribution,
-            "last_learning_time_interval": user_behavior.last_learning_time_interval,
+            # "content_click_rate": user_behavior.content_click_rate,
+            # "study_frequency_last_7_days": user_behavior.study_frequency_last_7_days,
+            # "active_time_distribution": user_behavior.active_time_distribution,
+            # "last_learning_time_interval": user_behavior.last_learning_time_interval,
         })
         history_objects = UserHistory.objects.filter(frontend_user=user)
         for history in history_objects:
@@ -813,10 +842,10 @@ def send_graph(request):
         "topic": topic_list
     }
     edges_dict = {
-        "problem__solved_by__user": user_solve_pro,
+        "problem__answered_by__user": user_solve_pro,
         "problem__related_to__topic": pro_relate_topic,
         "message__mentions__topic": mess_mention_topic,
-        "user__asks_about__message": user_asks_mess
+        "user__discussed__message": user_asks_mess
     }
     data = {
         "nodes": nodes_dict,

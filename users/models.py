@@ -118,6 +118,11 @@ class UserConversation(models.Model):
     timestamp = models.DateTimeField(auto_now_add=True)  # 记录时间
     user_message = models.TextField()  # 用户输入
     llm_response = models.TextField()  # LLM 回复
+    topic_relationship = models.ManyToManyField(
+        Category,
+        blank=True,
+        limit_choices_to={"category_type": "topic"}
+    )
 
     def __str__(self):
         return f"{self.frontend_user.username} 会话 {self.session_id} - {self.timestamp}"
