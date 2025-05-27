@@ -476,9 +476,9 @@ onMounted(() => {
     // 创建本体
     const earthGeometry = new THREE.SphereGeometry(20, 30, 30);   // 创建球形几何体
     const earthMaterial = new THREE.MeshPhongMaterial({    // 创建材质
-      map: loader.load('/src/assets/2k_earth_daymap(1).jpg'),        // 基础纹理
-      specularMap: loader.load('/src/assets/specular.png'),  // 高光纹理，指定物体表面中哪部分比较闪亮，哪部分相对暗淡
-      normalMap: loader.load('/src/assets/normal.png'),   // 法向纹理，创建更加细致的凹凸和褶皱
+      map: loader.load('/earth/2k_earth_daymap(1).jpg'),        // 基础纹理
+      specularMap: loader.load('/earth/specular.png'),  // 高光纹理，指定物体表面中哪部分比较闪亮，哪部分相对暗淡
+      normalMap: loader.load('/earth/normal.png'),   // 法向纹理，创建更加细致的凹凸和褶皱
       normalScale: new THREE.Vector2(3, 3),
       color: 0xffffff
     });
@@ -512,11 +512,11 @@ onMounted(() => {
   }
 `;
 
-    const flowTexture = loader.load('/src/assets/flow.png');
+    const flowTexture = loader.load('/earth/flow.png');
     flowTexture.wrapS = THREE.RepeatWrapping;
     flowTexture.wrapT = THREE.RepeatWrapping;
 
-    const noiseTexture = loader.load('/src/assets/noise.png');
+    const noiseTexture = loader.load('/earth/noise.png');
     noiseTexture.wrapS = THREE.RepeatWrapping;
     noiseTexture.wrapT = THREE.RepeatWrapping;
 

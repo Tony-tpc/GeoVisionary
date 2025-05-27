@@ -89,7 +89,7 @@ watch(() => props.modelValue, (val) => {
 
 .graph-title {
   font-size: 18px;
-  width: 160px;
+  width: 170px;
   text-align: center;
   color: #0d534b;
   font-weight: 600;

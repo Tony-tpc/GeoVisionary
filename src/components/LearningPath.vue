@@ -13,7 +13,7 @@ import 'vis-network/styles/vis-network.css'
 const networkContainer = ref(null)
 
 // 用户完成的考点 ID（未来替换为后端返回数据）
-const completedNodes = [1, 2, 3, 4, 5, 6, 7]
+const completedNodes = ref([1, 2, 3, 4, 5, 6, 7])
 
 // 知识点（节点）定义
 const topics = [
@@ -62,8 +62,8 @@ onMounted(() => {
     label: topic.label,
     shape: 'box',
     color: {
-      background: completedNodes.includes(topic.id) ? '#A5D6A7' : '#FFF9C4',
-      border: completedNodes.includes(topic.id) ? '#388E3C' : '#FBC02D',
+      background: completedNodes.value.includes(topic.id) ? '#A5D6A7' : '#FFF9C4',
+      border: completedNodes.value.includes(topic.id) ? '#388E3C' : '#FBC02D',
     },
     font: {
       color: '#333',
@@ -123,8 +123,13 @@ onMounted(() => {
   network.on('click', (params) => {
     if (params.nodes.length > 0) {
       const nodeId = params.nodes[0]
-      const topic = topics.find(t => t.id === nodeId)
-      alert(`你点击了知识点「${topic.label}」，后续可跳转详情页`)
+      // const topic = topics.find(t => t.id === nodeId)
+      // alert(`你点击了知识点「${topic.label}」，后续可跳转详情页`)
+      if (completedNodes.value.indexOf(nodeId) !== -1) {
+        completedNodes.value.splice(completedNodes.value.indexOf(nodeId), 1)
+      } else {
+        completedNodes.value.push(nodeId)
+      }
     }
   })
 })

@@ -173,6 +173,10 @@ const updateTheme = throttle(() => {
 // 保持选中菜单颜色
 const handleSelect = (index) => {
   data.activeIndex = index;
+  if (data.activeIndex === '/navigator/geo-graph'){
+    console.log(2)
+    setTimeout(location.reload, 200);
+  }
 };
 
 // 进入个人中心
@@ -388,7 +392,7 @@ onBeforeUnmount(() => {
 
 /* 注册/登录项，与菜单项风格作区分 */
 .register,.logged-in {
-  height: 42px;
+  height: 42px !important;
   width: 135px;
   background-color: transparent;
   border-radius: 51px;

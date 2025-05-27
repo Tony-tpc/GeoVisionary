@@ -261,7 +261,7 @@ onMounted(() => {
   top: 100vh;
   left: 0;
   height: 100vh;
-  background: url(../src/assets/insight-images/insight_bg.jpg) center / cover;
+  background: url(/insight_bg.jpg) center / cover;
 }
 
 /* 中间内容区域 */

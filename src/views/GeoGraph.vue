@@ -1442,7 +1442,7 @@ watch(() => currentIndex.value, async (val) => {
   top: 0;
   left: -28%;
   width: 23%;
-  height: 90vh;
+  height: 100vh;
   padding-top: 10vh;
   background-color: #f9f9f9;
   box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
@@ -1715,7 +1715,7 @@ canvas {
 .graph-changer {
   position: absolute;
   top: 8%;
-  right: calc(50% - 130px);
+  right: calc(50% - 135px);
   z-index: 1;
 }
 
